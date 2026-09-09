@@ -1,0 +1,1239 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>男子体操 団体得点シミュレーター</title>
+<style>
+:root{
+  --ink:#0f2237;
+  --ink-2:#3d5570;
+  --mute:#7d93aa;
+  --drop:#b3c3d4;
+  --line:#dbe6f2;
+  --rail:#c3d9ef;
+  --field:#eff5fc;
+  --field-2:#e2edf9;
+  --paper:#ffffff;
+  --bg:#f2f5f9;
+  --accent:#1a63c4;
+  --accent-soft:#dceafa;
+  --gain:#0f7a5a;
+  --loss:#b4462f;
+  --r:8px;
+  --shadow:0 1px 2px rgba(15,34,55,.06), 0 8px 24px -18px rgba(15,34,55,.5);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",Meiryo,sans-serif;
+  font-size:13px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px;border-radius:3px}
+
+/* ---------- top bar ---------- */
+.topbar{
+  display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+  padding:10px 18px;background:var(--paper);border-bottom:1px solid var(--line);
+  position:sticky;top:0;z-index:30;
+}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand h1{font-size:14px;font-weight:700;margin:0;letter-spacing:.02em}
+.brand span{font-size:11px;color:var(--mute)}
+.setgrp{display:flex;align-items:center;gap:6px}
+.setlab{font-size:11px;color:var(--mute)}
+.modes{display:flex;background:var(--field);border:1px solid var(--rail);border-radius:var(--r);padding:2px;gap:2px}
+.modes button{
+  border:0;background:transparent;padding:5px 10px;border-radius:6px;cursor:pointer;
+  font-size:12px;color:var(--ink-2);white-space:nowrap;
+}
+.modes button:hover{background:#fff}
+.modes button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:600}
+.modes button[disabled]{color:#c3ceda;cursor:not-allowed}
+.modes button[disabled]:hover{background:transparent}
+.modes button b{font-weight:600}
+.tools{display:flex;gap:6px;flex-wrap:wrap}
+.tools button,.tools label{
+  border:1px solid var(--rail);background:var(--paper);padding:5px 10px;border-radius:6px;
+  cursor:pointer;font-size:12px;color:var(--ink-2);
+}
+.tools button:hover,.tools label:hover{background:var(--field);color:var(--ink)}
+.tools .danger:hover{border-color:#e2b7ac;color:var(--loss)}
+
+/* ---------- layout ---------- */
+main{
+  display:grid;grid-template-columns:minmax(560px,1.3fr) minmax(430px,1fr);
+  gap:14px;padding:14px 18px 40px;align-items:start;max-width:1760px;margin:0 auto;
+}
+.stack{display:flex;flex-direction:column;gap:14px;min-width:0}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.card > h2{
+  margin:0;padding:9px 14px;font-size:12px;font-weight:600;color:var(--ink-2);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;
+}
+.card > h2 .sub{font-weight:400;color:var(--mute);font-size:11px}
+.card > h2 .right{margin-left:auto;display:flex;gap:6px;align-items:center}
+
+/* ---------- team scoreboard ---------- */
+.tm-head{display:flex;align-items:flex-end;gap:16px;padding:14px 16px 12px;background:linear-gradient(180deg,#f7fbff,#fff)}
+.tm-head .label{font-size:12px;color:var(--ink-2);font-weight:600}
+.tm-head .total{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1;margin-left:auto}
+.tm-head .rule{font-size:11px;color:var(--mute);padding-bottom:3px}
+table.grid{width:100%;border-collapse:collapse}
+table.grid th,table.grid td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}
+table.grid th:first-child,table.grid td:first-child{text-align:left;width:170px;padding-left:16px}
+table.grid td:last-child,table.grid th:last-child{padding-right:16px}
+table.grid thead th{background:var(--field);border-top:0;border-bottom:1px solid var(--rail)}
+.apicon{display:block;margin:0 auto;color:var(--accent);opacity:.92}
+.aptot td{background:var(--field-2);font-weight:700;font-size:13px}
+.aptot td:first-child{font-size:11px;font-weight:600;color:var(--ink-2)}
+.apcount td{background:var(--field-2);font-size:11px;color:var(--mute);padding-top:2px;padding-bottom:5px;border-top:0}
+.apcount td:first-child{font-weight:600;color:var(--ink-2)}
+.apcount td.bad{color:var(--loss);font-weight:700}
+tr.member td{font-size:13px}
+tr.member td:first-child{font-weight:600;display:flex;align-items:center;gap:7px}
+tr.member:hover td{background:#f8fbfe}
+.sc-count{color:var(--ink)}
+.sc-drop{color:var(--drop)}
+.sc-off{color:#cdd8e3}
+.rank{
+  display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;
+  border-radius:50%;background:var(--field-2);color:var(--ink-2);font-size:10px;font-weight:700;flex:none;
+}
+.tm-foot{padding:8px 16px 12px;color:var(--mute);font-size:11px;border-top:1px solid var(--line);display:flex;align-items:flex-start;gap:10px}
+.tm-foot .onbtn{flex:none}
+.empty{padding:26px 16px;color:var(--mute);text-align:center}
+
+/* ---------- analysis ---------- */
+.cardtog{border:0;background:transparent;cursor:pointer;padding:0;font:inherit;font-weight:600;display:flex;align-items:center;gap:6px;color:var(--ink-2)}
+.cardtog:hover{color:var(--ink)}
+.cardtog .tri{font-size:9px;color:var(--mute);transition:transform .15s;display:inline-block}
+.card[data-open="0"] .cardtog .tri{transform:rotate(-90deg)}
+.card[data-open="0"] .an-body{display:none}
+.card[data-open="0"] > h2{border-bottom:0}
+.an-body{display:grid;grid-template-columns:222px 1fr;gap:0}
+.radar-wrap{padding:8px 8px 10px 10px;border-right:1px solid var(--line)}
+.radar-legend{display:flex;flex-wrap:wrap;gap:4px 10px;padding:2px 4px 0;font-size:11px}
+.radar-legend button{display:flex;align-items:center;gap:5px;border:0;background:transparent;cursor:pointer;padding:2px 3px;border-radius:4px;color:var(--ink-2)}
+.radar-legend button:hover{background:var(--field)}
+.radar-legend .sw{width:9px;height:9px;border-radius:2px;flex:none}
+.radar-legend button[aria-pressed="false"]{color:var(--drop)}
+.radar-legend button[aria-pressed="false"] .sw{opacity:.25}
+.an-tables{padding:10px 14px 14px;min-width:0;display:flex;flex-direction:column;gap:14px}
+table.mini{width:100%;border-collapse:collapse;font-size:12px}
+table.mini th,table.mini td{padding:4px 6px;text-align:right;border-bottom:1px solid var(--line)}
+table.mini th{color:var(--mute);font-weight:500;font-size:11px;border-bottom:1px solid var(--rail)}
+table.mini th:first-child,table.mini td:first-child{text-align:left}
+table.mini tr:last-child td{border-bottom:0}
+.an-tables h3{margin:0 0 4px;font-size:11px;color:var(--ink-2);font-weight:600}
+.bar{height:5px;border-radius:3px;background:var(--accent);display:block}
+.bartrack{background:var(--field-2);border-radius:3px;width:100%;min-width:52px}
+.gain{color:var(--gain);font-weight:600}
+.loss{color:var(--loss)}
+.zero{color:var(--mute)}
+.note{font-size:11px;color:var(--mute)}
+
+/* ---------- athlete panel ---------- */
+.panel{display:flex;flex-direction:column;gap:6px}
+.divider{
+  display:flex;align-items:center;gap:8px;font-size:11px;color:var(--accent);
+  padding:2px 2px;user-select:none;
+}
+.divider::before,.divider::after{content:"";height:1px;background:var(--rail);flex:1}
+.ath{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.ath.inteam{border-color:var(--rail)}
+.ath.dragging{opacity:.4}
+.ath.over{box-shadow:0 -3px 0 -1px var(--accent),var(--shadow)}
+.ath-head{display:flex;align-items:center;gap:8px;padding:7px 10px 7px 6px;background:var(--field);cursor:pointer}
+.ath.bench .ath-head{background:#fbfcfe}
+.ath-head:hover{background:var(--field-2)}
+.ath.bench .ath-head:hover{background:var(--field)}
+.handle{cursor:grab;color:var(--drop);padding:0 3px;font-size:14px;line-height:1;flex:none}
+.handle:active{cursor:grabbing}
+.badge{
+  display:inline-flex;align-items:center;gap:3px;flex:none;
+  background:var(--accent);color:#fff;font-size:10px;font-weight:700;
+  padding:2px 6px;border-radius:20px;
+}
+.badge.bench{background:transparent;color:var(--mute);border:1px dashed var(--rail);font-weight:500}
+.ath-name{font-weight:600;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ath.bench .ath-name{color:var(--ink-2)}
+.aa{margin-left:auto;display:flex;align-items:baseline;gap:6px;flex:none}
+.aa .lab{font-size:10px;color:var(--mute)}
+.aa .val{font-size:15px;font-weight:700}
+.ath.bench .aa .val{color:var(--ink-2);font-weight:600}
+.chev{border:0;background:transparent;color:var(--ink-2);cursor:pointer;padding:2px 4px;flex:none;transition:transform .15s}
+.ath[data-open="1"] .chev{transform:rotate(180deg)}
+.ath-body{padding:2px 0 0}
+table.detail{width:100%;border-collapse:collapse}
+table.detail th,table.detail td{padding:3px 4px;text-align:center;border-bottom:1px solid var(--line)}
+table.detail th:first-child,table.detail td:first-child{
+  text-align:left;width:52px;padding-left:12px;color:var(--mute);font-size:11px;font-weight:500;
+}
+table.detail thead th{background:#fff;border-bottom:1px solid var(--rail);padding-bottom:5px}
+tr.r-total td{font-weight:700;font-size:13px;background:var(--field)}
+tr.r-total td:first-child{color:var(--ink-2);font-weight:600}
+tr.r-on td{border-bottom:0}
+.cell{
+  width:100%;border:1px solid transparent;background:transparent;border-radius:5px;
+  padding:3px 2px;font-size:12.5px;cursor:text;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+.cell:hover{border-color:var(--rail);background:#fff}
+.cell.off{color:#d3dce6}
+input.cell{cursor:text;border-color:var(--accent);background:#fff;font-weight:600}
+.stepper{display:flex;flex-direction:column;gap:1px;margin-left:1px}
+.cellwrap{display:flex;align-items:center;justify-content:center;gap:1px}
+.step{
+  border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:3px;
+  width:15px;height:11px;line-height:0;padding:0;cursor:pointer;font-size:8px;
+  display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .12s;
+}
+tr:hover .step,.cellwrap:focus-within .step{opacity:1}
+.step:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.onbtn{border:1px solid var(--rail);background:#fff;border-radius:5px;padding:2px 7px;font-size:11px;cursor:pointer;color:var(--accent)}
+.onbtn[aria-pressed="false"]{color:var(--drop);border-style:dashed}
+.ath-foot{display:flex;gap:6px;padding:7px 12px 9px;flex-wrap:wrap;align-items:center}
+.ath-foot button{border:1px solid var(--line);background:#fff;border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer;color:var(--ink-2)}
+.ath-foot button:hover{background:var(--field);color:var(--ink)}
+.ath-foot .del:hover{color:var(--loss);border-color:#e2b7ac}
+.ath-foot .spacer{margin-left:auto}
+.ath-foot .primary{border-color:var(--rail);color:var(--accent);font-weight:600}
+.ath-foot .primary:hover{background:var(--accent-soft)}
+
+/* ---------- dialog ---------- */
+dialog{border:1px solid var(--rail);border-radius:10px;padding:0;max-width:720px;width:92vw;box-shadow:0 24px 60px -20px rgba(15,34,55,.5)}
+dialog::backdrop{background:rgba(15,34,55,.35)}
+.dlg-h{padding:12px 16px;border-bottom:1px solid var(--line);font-weight:600;display:flex;align-items:center}
+.dlg-h button{margin-left:auto;border:0;background:transparent;cursor:pointer;font-size:16px;color:var(--mute)}
+.dlg-b{padding:14px 16px;max-height:66vh;overflow:auto}
+.dlg-f{padding:10px 16px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:center}
+.dlg-f .spacer{margin-left:auto}
+.dlg-b textarea{width:100%;height:150px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;border:1px solid var(--rail);border-radius:6px;padding:8px;resize:vertical}
+.dlg-b pre{background:var(--field);border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:11px;overflow:auto;margin:6px 0}
+.dlg-b h4{margin:12px 0 4px;font-size:12px}
+.dlg-b p{margin:4px 0;font-size:12px;color:var(--ink-2)}
+.btn{border:1px solid var(--rail);background:#fff;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.radio{display:flex;gap:14px;font-size:12px;color:var(--ink-2);margin:6px 0}
+.msg{font-size:12px;color:var(--loss);min-height:16px}
+.toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  background:var(--ink);color:#fff;padding:8px 16px;border-radius:20px;font-size:12px;
+  opacity:0;pointer-events:none;transition:opacity .2s;z-index:60;
+}
+.toast.on{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:1180px){
+  main{grid-template-columns:1fr}
+  .an-body{grid-template-columns:1fr}
+  .radar-wrap{border-right:0;border-bottom:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <h1>男子体操 団体得点シミュレーター</h1>
+    <span>MAG Team Score Simulator</span>
+  </div>
+  <div class="setgrp"><span class="setlab">エントリー</span><div class="modes" id="entries" role="group" aria-label="エントリー人数"></div></div>
+  <div class="setgrp"><span class="setlab">演技</span><div class="modes" id="modes" role="group" aria-label="演技人数とカウント本数"></div></div>
+  <div class="tools">
+    <button id="btnAdd">選手を追加</button>
+    <button id="btnImport">CSV取込</button>
+    <button id="btnCsvOut">CSV書出</button>
+    <button id="btnSave">バックアップ</button>
+    <label>復元<input type="file" id="fileRestore" accept=".json,application/json" hidden></label>
+    <button id="btnReset" class="danger">データを消す</button>
+  </div>
+</div>
+
+<main>
+  <div class="stack">
+    <section class="card" id="teamCard"></section>
+    <section class="card" id="anCard" data-open="1">
+      <h2><button class="cardtog" id="anToggle" aria-expanded="true"><span class="tri">▼</span>分析</button><span class="sub" id="anSub"></span></h2>
+      <div class="an-body">
+        <div class="radar-wrap">
+          <div id="radar"></div>
+          <div class="radar-legend" id="radarLegend"></div>
+        </div>
+        <div class="an-tables" id="anTables"></div>
+      </div>
+    </section>
+  </div>
+  <div class="panel" id="panel"></div>
+</main>
+
+<dialog id="dlgImport">
+  <form method="dialog" class="dlg-h">初期値をCSVから取り込む<button value="cancel" aria-label="閉じる">×</button></form>
+  <div class="dlg-b">
+    <p>Excelから「CSV UTF-8」または通常のCSVで書き出したファイルを読み込みます。ファイル選択のほか、シートをコピーしてそのまま貼り付けても取り込めます（タブ区切り可）。</p>
+    <div class="radio">
+      <label><input type="radio" name="impmode" value="replace" checked> 全部入れ替える</label>
+      <label><input type="radio" name="impmode" value="merge"> 同名選手は上書き、新規は追加</label>
+    </div>
+    <p><input type="file" id="fileCsv" accept=".csv,.txt,.tsv,text/csv"></p>
+    <textarea id="csvText" placeholder="ここに貼り付け"></textarea>
+    <div class="msg" id="impMsg"></div>
+    <h4>使える書式（列名は日本語・英語どちらでも可）</h4>
+    <p>1行1種目（推奨）</p>
+    <pre>選手名,種目,D,E,ND,SB
+大宅 隼人,ゆか,5.200,8.500,0.1,0.0
+大宅 隼人,あん馬,4.200,8.466,0.0,0.0</pre>
+    <p>1行1選手（横並び）</p>
+    <pre>選手名,ゆかD,ゆかE,ゆかND,ゆかSB,あん馬D,あん馬E,…
+大宅 隼人,5.2,8.5,0.1,0,4.2,8.466,0,0</pre>
+    <p>合計点だけの表（D/Eの内訳がない場合はEに入ります）</p>
+    <pre>選手名,ゆか,あん馬,つり輪,跳馬,平行棒,鉄棒
+大宅 隼人,13.600,12.666,,14.000,13.100,12.900</pre>
+    <p class="note">空欄・0点・「-」の種目は「演技しない」として扱います。種目名は FX/PH/SR/VT/PB/HB、床、鞍馬、吊り輪、とび馬 などの表記ゆれに対応します。</p>
+  </div>
+  <div class="dlg-f">
+    <button class="btn" id="btnSample">サンプルCSVを書き出す</button>
+    <span class="spacer"></span>
+    <button class="btn" id="btnImpCancel">やめる</button>
+    <button class="btn primary" id="btnImpRun">取り込む</button>
+  </div>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ========== 定数 ========== */
+const AP = [
+  {k:"fx", n:"ゆか",   s:"FX"},
+  {k:"ph", n:"あん馬", s:"PH"},
+  {k:"sr", n:"つり輪", s:"SR"},
+  {k:"vt", n:"跳馬",   s:"VT"},
+  {k:"pb", n:"平行棒", s:"PB"},
+  {k:"hb", n:"鉄棒",   s:"HB"}
+];
+const ICON = {
+  fx:'<path d="M 4.62,14.62 L 4.62,24.62 L 14.62,24.62 L 24.62,24.62 L 24.62,14.62 L 24.62,4.62 L 14.62,4.62 L 4.62,4.62 L 4.62,14.62 Z M 22.67,14.62 L 22.67,22.67 L 14.62,22.67 L 6.56,22.67 L 6.56,14.62 L 6.56,6.56 L 14.62,6.56 L 22.67,6.56 L 22.67,14.62 Z M 8.23,14.62 L 8.23,21.01 L 14.62,21.01 L 21.01,21.01 L 21.01,14.62 L 21.01,8.23 L 14.62,8.23 L 8.23,8.23 L 8.23,14.62 Z"/>',
+  ph:'<path d="M 8.19,5.3 C 7.98,5.5 7.96,5.57 7.95,6.6 C 7.94,6.91 7.92,7.38 7.92,7.63 L 7.91,8.09 L 6.49,8.12 L 5.08,8.14 L 4.72,8.39 C 4.19,8.77 4.17,8.84 4.17,10.56 L 4.17,12.08 L 5.14,13 C 5.68,13.5 6.12,13.96 6.12,14.02 C 6.12,14.27 4.88,17.47 3.48,20.81 C 3.19,21.52 2.95,22.14 2.95,22.18 C 2.95,22.22 3.58,22.24 4.55,22.23 L 6.15,22.21 L 7.96,18.96 C 8.96,17.17 9.87,15.52 10,15.3 L 10.22,14.89 L 12.91,14.87 L 15.61,14.85 L 16.79,16.98 C 17.43,18.16 18.35,19.83 18.8,20.68 L 19.63,22.25 L 21.29,22.25 C 22.2,22.25 22.95,22.23 22.95,22.21 C 22.95,22.18 22.67,21.49 22.33,20.68 C 20.87,17.18 19.78,14.34 19.78,14.04 C 19.78,13.96 20.18,13.51 20.71,13.02 L 21.65,12.15 L 21.65,10.51 C 21.65,8.66 21.64,8.64 21.05,8.32 C 20.74,8.16 20.57,8.14 19.31,8.12 L 17.91,8.09 L 17.91,6.79 C 17.91,5.03 17.97,5.09 16.25,5.09 L 15,5.09 L 14.78,5.35 C 14.57,5.59 14.57,5.62 14.57,6.85 L 14.57,8.1 L 12.91,8.1 L 11.24,8.1 L 11.24,6.83 L 11.24,5.57 L 11,5.33 L 10.77,5.09 L 9.57,5.09 C 8.42,5.09 8.38,5.1 8.19,5.3 Z"/>',
+  sr:'<path d="M 7.78,10.01 L 7.78,15.02 L 7.2,15.32 C 5.37,16.28 4.28,18.56 4.73,20.49 C 5,21.68 5.95,22.87 7.07,23.42 C 10.78,25.23 14.72,21.64 13.25,17.8 C 12.84,16.72 11.92,15.7 10.92,15.24 C 10.6,15.09 10.38,14.93 10.38,14.84 C 10.38,14.77 10.37,12.53 10.35,9.88 L 10.33,5.06 L 9.06,5.03 L 7.78,5 L 7.78,10.01 Z M 10.14,17.2 C 12.5,18.31 11.68,21.9 9.09,21.89 C 7.66,21.88 6.67,20.9 6.67,19.48 C 6.67,17.64 8.52,16.43 10.14,17.2 Z M 18.99,5.03 C 18.99,5.05 18.97,7.28 18.96,10.01 L 18.93,14.97 L 18.3,15.29 C 15.47,16.72 14.8,20.37 16.97,22.55 C 18.6,24.18 21.18,24.35 22.94,22.93 C 25.12,21.2 25.2,18 23.11,16 C 22.88,15.77 22.42,15.45 22.1,15.29 L 21.51,14.98 L 21.51,9.99 L 21.51,5.01 L 20.25,5.01 C 19.57,5.01 19,5.02 18.99,5.03 Z M 21.12,17.11 C 22.03,17.49 22.57,18.37 22.57,19.43 C 22.57,20.9 21.57,21.89 20.11,21.89 C 17.46,21.89 16.77,18.26 19.19,17.17 C 19.7,16.94 20.63,16.91 21.12,17.11 Z"/>',
+  vt:'<path d="M 8.19,5.06 C 6.69,5.39 5.56,6.5 5.16,8.03 C 5.04,8.46 5.01,9.22 5.01,11.6 L 5.01,14.63 L 6.53,14.63 L 8.05,14.63 L 8.08,12.6 C 8.12,10.26 8.21,9.91 9.11,9.07 C 9.97,8.27 10.19,8.2 12.52,8.18 L 14.54,8.15 L 14.54,15.34 L 14.54,22.54 L 10.3,22.54 L 6.06,22.54 L 6.06,23.73 L 6.06,24.92 L 15.44,24.92 L 24.82,24.92 L 24.82,23.73 L 24.82,22.54 L 21.87,22.54 L 18.92,22.54 L 18.92,15.35 L 18.92,8.16 L 21.87,8.16 L 24.82,8.16 L 24.82,6.54 L 24.82,4.92 L 16.8,4.93 C 10.42,4.93 8.65,4.96 8.19,5.06 Z"/>',
+  pb:'<path d="M 5.89,5.76 L 5.53,6.3 L 5.97,6.93 L 6.42,7.54 L 7.22,7.54 L 8.02,7.54 L 8.02,8.36 L 8.02,9.19 L 5.84,9.2 L 3.65,9.23 L 3.63,10.41 L 3.6,11.61 L 4.78,11.61 L 5.95,11.61 L 5.95,17.51 L 5.95,23.42 L 6.96,23.4 L 7.98,23.39 L 8.02,17.43 L 8.07,11.48 L 8.11,15.68 L 8.15,19.87 L 9.26,19.9 L 10.36,19.93 L 10.36,15.72 L 10.36,11.52 L 13.13,11.52 L 15.9,11.52 L 15.9,17.44 C 15.9,20.7 15.93,23.39 15.97,23.41 C 16,23.43 16.42,23.43 16.88,23.4 L 17.72,23.35 L 17.72,17.44 C 17.72,12.26 17.73,11.52 17.85,11.52 C 17.96,11.52 17.98,12.07 17.99,15.69 L 18.02,19.87 L 19.12,19.9 L 20.23,19.93 L 20.24,15.75 L 20.27,11.57 L 21.33,11.54 L 22.39,11.51 L 22.39,10.35 L 22.39,9.19 L 21.31,9.19 L 20.23,9.19 L 20.23,8.36 L 20.23,7.54 L 21.91,7.54 L 23.6,7.54 L 23.6,6.37 L 23.6,5.2 L 14.93,5.2 L 6.25,5.2 L 5.89,5.76 Z M 17.98,8.36 L 17.98,9.19 L 14.17,9.19 L 10.36,9.19 L 10.36,8.36 L 10.36,7.54 L 14.17,7.54 L 17.98,7.54 L 17.98,8.36 Z"/>',
+  hb:'<path d="M 6.19,4.89 C 6.15,4.92 6.12,5.32 6.12,5.77 C 6.12,6.48 6.15,6.61 6.29,6.66 C 6.45,6.73 6.43,6.95 5.99,10.77 C 5.71,13.23 5.48,14.86 5.42,14.91 C 5.3,15.01 4.63,22.42 4.64,23.67 L 4.64,24.44 L 4.92,24.44 C 5.07,24.44 5.2,24.42 5.2,24.4 C 5.2,24.38 5.45,22.55 5.75,20.35 C 6.06,18.15 6.31,16.32 6.31,16.31 C 6.31,16.28 6.37,16.26 6.43,16.26 C 6.59,16.26 6.68,18.29 6.68,21.9 L 6.68,24.44 L 7.6,24.44 L 8.51,24.44 L 8.58,23.53 C 8.61,23.04 8.65,21.34 8.68,19.75 C 8.75,16.44 8.76,16.26 9,16.26 C 9.22,16.26 9.18,16.05 9.76,20.56 L 10.25,24.44 L 10.73,24.44 L 11.2,24.44 L 10.67,19.72 C 10.37,17.12 10.1,14.91 10.07,14.81 C 10.04,14.7 9.78,12.84 9.48,10.67 L 8.95,6.73 L 14.48,6.7 C 17.52,6.69 20.02,6.69 20.03,6.7 C 20.13,6.8 19.1,14.46 18.98,14.56 C 18.88,14.63 18.71,15.82 18.31,19.25 C 18,21.77 17.74,23.98 17.71,24.14 L 17.66,24.44 L 18.16,24.44 L 18.65,24.44 L 18.8,23.49 C 18.88,22.96 19.16,21.04 19.43,19.21 L 19.92,15.89 L 20.18,15.89 L 20.44,15.89 L 20.44,20.16 L 20.44,24.44 L 21.37,24.44 L 22.3,24.44 L 22.3,20.16 C 22.3,16.05 22.31,15.89 22.48,15.89 C 22.59,15.89 22.67,15.97 22.7,16.14 C 22.72,16.29 23.04,18.21 23.38,20.42 L 24.02,24.44 L 24.33,24.44 L 24.64,24.44 L 24.58,23.96 C 24.55,23.69 24.37,21.69 24.16,19.51 C 23.65,14.05 23.74,14.6 23.39,14.57 L 23.09,14.54 L 23.03,12.12 C 22.99,10.79 22.94,8.62 22.94,7.29 L 22.91,4.87 L 14.58,4.84 C 10,4.83 6.22,4.85 6.19,4.89 Z"/>'
+};
+const RULE = {3:3, 4:3, 5:4, 6:5};          // 出場人数 → 各種目のカウント本数
+const E_DEC = [0,100,200,300,333,400,500,600,666,700,800,900,999];
+const MAXV = {d:20, e:20, nd:10, sb:10};   // e/d は合計点取込に備えて広めに取る
+const COLORS = ["#1a63c4","#0f7a5a","#b4462f","#7b4fb0","#b8860b","#2e8ab0","#a13a6d","#4a6b1f"];
+const KEY = "mag_team_sim_v1";
+
+/* ========== 数値ユーティリティ ========== */
+const r3 = x => Math.round((x + Number.EPSILON) * 1000) / 1000;
+const r1 = x => Math.round((x + Number.EPSILON) * 10) / 10;
+const f3 = x => (x || 0).toFixed(3);
+const f1 = x => (x || 0).toFixed(1);
+const clamp = (v,a,b) => Math.min(b, Math.max(a, v));
+
+function stepE(v, dir){
+  const ms = Math.round(v * 1000);
+  const ip = Math.floor(ms / 1000), dec = ms - ip * 1000;
+  if (dir > 0){
+    const nx = E_DEC.find(d => d > dec);
+    return clamp(nx !== undefined ? (ip*1000+nx)/1000 : ip + 1, 0, MAXV.e);
+  }
+  const pv = E_DEC.filter(d => d < dec).pop();
+  if (pv !== undefined) return clamp((ip*1000+pv)/1000, 0, MAXV.e);
+  if (ip <= 0) return 0;
+  return clamp(((ip-1)*1000 + E_DEC[E_DEC.length-1])/1000, 0, MAXV.e);
+}
+function stepVal(field, v, dir){
+  if (field === "e") return stepE(v, dir);
+  const nv = r1(v + dir * 0.1);
+  return clamp(nv, 0, MAXV[field]);
+}
+function normVal(field, v){
+  if (!isFinite(v)) return 0;
+  if (field === "e") return clamp(r3(v), 0, MAXV.e);
+  return clamp(r1(v), 0, MAXV[field]);
+}
+
+/* ========== 状態 ========== */
+let S = load() || seedState();
+let hidden = new Set();      // レーダーで非表示にした選手ID
+let seq = S.athletes.length;
+
+function blankScores(){
+  const o = {};
+  AP.forEach(a => o[a.k] = {d:0, e:0, nd:0, sb:0, on:false});
+  return o;
+}
+function newAthlete(name){
+  return {id:"a" + (++seq) + "_" + Math.random().toString(36).slice(2,6), name:name || "選手", open:false, sc:blankScores()};
+}
+function seedState(){
+  const src = [
+    ["大宅 隼人",[[5.6,8.500,0,0],[5.2,8.366,0,0],[5.4,8.633,0,0],[5.6,9.100,0,0],[5.8,8.400,0,0],[5.4,8.266,0,0]]],
+    ["平 伊吹",  [[5.4,8.666,0,0],[5.9,8.966,0,0],[5.2,8.766,0,0],[5.2,8.900,0,0],[6.0,8.566,0,0],[5.6,8.533,0,0]]],
+    ["長野 快星",[[5.3,8.533,0,0],[5.6,8.966,0,0],[5.5,8.166,0,0],[5.6,9.000,0,0],[5.8,8.900,0,0],[6.0,8.233,0,0]]],
+    ["中井 統慎",[[5.8,8.033,0,0],[5.0,8.333,0,0],[5.1,8.133,0,0],[5.2,8.066,0,0],[6.1,8.166,0,0],[5.5,8.533,0,0]]],
+    ["新井 唯斗",[[5.1,8.400,0,0],[4.8,8.100,0,0],[5.6,8.500,0,0],[5.2,8.800,0,0],[5.5,8.300,0,0],[5.2,8.000,0,0]]],
+    ["三宅 悠真",[[4.9,8.633,0,0],[5.3,8.466,0,0],[5.0,8.366,0,0],[5.6,9.033,0,0],[5.2,8.633,0,0],[5.8,8.100,0,0]]]
+  ];
+  const athletes = src.map((row,i) => {
+    const a = {id:"a" + (i+1), name:row[0], open:i === 0, sc:blankScores()};
+    AP.forEach((ap,j) => {
+      const v = row[1][j];
+      a.sc[ap.k] = {d:v[0], e:v[1], nd:v[2], sb:v[3], on:true};
+    });
+    return a;
+  });
+  // 6人エントリー・5人演技の既定：各種目で最下位の1名を「しない」にしておく
+  AP.forEach(ap => {
+    let worst = null;
+    athletes.forEach(a => {
+      const c = a.sc[ap.k], v = c.d + c.e - c.nd + c.sb;
+      if (!worst || v < worst.v) worst = {a, v};
+    });
+    if (worst) worst.a.sc[ap.k].on = false;
+  });
+  return {v:1, entry:6, mode:5, anOpen:true, athletes};
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || !Array.isArray(o.athletes)) return null;
+    o.mode = RULE[o.mode] ? o.mode : 5;
+    o.entry = RULE[o.entry] ? o.entry : o.mode;
+    if (o.entry < o.mode) o.entry = o.mode;
+    o.athletes.forEach(a => {
+      a.sc = a.sc || {};
+      AP.forEach(ap => {
+        const c = a.sc[ap.k] || {};
+        a.sc[ap.k] = {d:+c.d||0, e:+c.e||0, nd:+c.nd||0, sb:+c.sb||0, on:c.on !== false};
+      });
+    });
+    return o;
+  }catch(e){ return null; }
+}
+let saveTimer = null;
+function save(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+    catch(e){ toast("保存できませんでした（ブラウザの保存領域を確認してください）"); }
+  }, 120);
+}
+
+/* ========== 計算 ========== */
+const scoreOf = (a, k) => {
+  const c = a.sc[k];
+  return c.on ? r3(c.d + c.e - c.nd + c.sb) : 0;
+};
+const aaOf = a => r3(AP.reduce((s, ap) => s + scoreOf(a, ap.k), 0));
+
+function computeFor(members, mode){
+  const n = RULE[mode];
+  const res = {total:0, ap:{}, count:{}, margin:{}, avg:{}, byAth:{}, onCount:{}};
+  members.forEach(m => res.byAth[m.id] = {sum:0, n:0});
+  AP.forEach(a => {
+    const rows = members
+      .map((m,i) => ({i, id:m.id, on:m.sc[a.k].on, v:scoreOf(m, a.k)}))
+      .filter(r => r.on);
+    rows.sort((x,y) => y.v - x.v || x.i - y.i);
+    const cnt = rows.slice(0, n);
+    res.onCount[a.k] = rows.length;
+    res.count[a.k] = new Set(cnt.map(r => r.id));
+    const t = r3(cnt.reduce((s,r) => s + r.v, 0));
+    res.ap[a.k] = t;
+    res.avg[a.k] = cnt.length ? r3(t / cnt.length) : 0;
+    res.margin[a.k] = (cnt.length === n && rows.length > n) ? r3(cnt[n-1].v - rows[n].v) : null;
+    res.total = r3(res.total + t);
+    cnt.forEach(r => { res.byAth[r.id].sum = r3(res.byAth[r.id].sum + r.v); res.byAth[r.id].n++; });
+  });
+  res.short = AP.filter(a => res.count[a.k].size < n).map(a => a.n);
+  return res;
+}
+const teamMembers = () => S.athletes.slice(0, S.entry);
+const compute = () => computeFor(teamMembers(), S.mode);
+
+/* ========== 描画：団体スコアボード ========== */
+function apIconSvg(k, size){
+  return '<svg class="apicon" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" ' +
+         'fill="currentColor" fill-rule="evenodd" aria-hidden="true">' + ICON[k] + '</svg>';
+}
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function renderTeam(R){
+  const mem = teamMembers();
+  const n = RULE[S.mode];
+  let h = "";
+  h += '<div class="tm-head">';
+  h +=   '<div><div class="label">団体総合</div><div class="rule">' + S.entry + '人エントリー ／ ' + S.mode + '人演技 ／ 各種目 上位' + n + '人カウント</div></div>';
+  h +=   '<div class="total num">' + f3(R.total) + '</div>';
+  h += '</div>';
+
+  if (!mem.length){
+    h += '<div class="empty">選手がいません。「選手を追加」かCSV取込から始めてください。</div>';
+    teamCard.innerHTML = h;
+    return;
+  }
+
+  h += '<table class="grid"><thead><tr><th></th>' +
+       AP.map(a => '<th title="' + a.n + '">' + apIconSvg(a.k, 20) + '</th>').join("") +
+       '</tr></thead><tbody>';
+  h += '<tr class="aptot"><td>種目合計</td>' +
+       AP.map(a => '<td class="num">' + f3(R.ap[a.k]) + '</td>').join("") + '</tr>';
+  h += '<tr class="apcount"><td>演技者</td>' +
+       AP.map(a => {
+         const c = R.onCount[a.k];
+         const bad = c !== S.mode;
+         return '<td class="num' + (bad ? " bad" : "") + '">' + c + ' / ' + S.mode + '</td>';
+       }).join("") + '</tr>';
+  mem.forEach((m, idx) => {
+    h += '<tr class="member"><td><span class="rank num">' + (idx+1) + '</span>' + esc(m.name) + '</td>';
+    AP.forEach(a => {
+      const on = m.sc[a.k].on;
+      const cls = !on ? "sc-off" : (R.count[a.k].has(m.id) ? "sc-count" : "sc-drop");
+      h += '<td class="num ' + cls + '">' + (on ? f3(scoreOf(m, a.k)) : "—") + '</td>';
+    });
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+
+  const over = AP.filter(a => R.onCount[a.k] > S.mode).map(a => a.n);
+  const under = AP.filter(a => R.onCount[a.k] < S.mode).map(a => a.n);
+  const notes = [];
+  if (over.length)  notes.push("演技者が" + S.mode + "人を超えています：" + over.join("、") + "（個人詳細の「出場」を「しない」にしてください）");
+  if (under.length) notes.push("演技者が" + S.mode + "人に足りません：" + under.join("、"));
+  notes.push("薄い数字はカウント外。左の番号が上から" + S.entry + "番目までがエントリー選手です。");
+  h += '<div class="tm-foot"><button class="onbtn" id="btnAuto">演技者を自動で割り当てる</button>' +
+       '<span>' + esc(notes.join(" ／ ")) + '</span></div>';
+  teamCard.innerHTML = h;
+}
+
+/* ========== 描画：レーダー＋分析 ========== */
+function renderAnalysis(R){
+  const mem = teamMembers();
+  const n = RULE[S.mode];
+  const open = S.anOpen !== false;
+  anCard.dataset.open = open ? "1" : "0";
+  anToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  anSub.textContent = mem.length ? (S.entry + "人エントリー・" + S.mode + "人演技・上位" + n + "人カウント") : "";
+  if (!open) return;
+
+  /* --- スケール --- */
+  const vals = [];
+  mem.forEach(m => AP.forEach(a => { if (m.sc[a.k].on) vals.push(scoreOf(m, a.k)); }));
+  let lo = vals.length ? Math.floor(Math.min.apply(null, vals) * 2) / 2 - 0.5 : 10;
+  let hi = vals.length ? Math.ceil (Math.max.apply(null, vals) * 2) / 2 + 0.5 : 15;
+  if (hi - lo < 1.5) hi = lo + 1.5;
+
+  const W = 210, H = 168, cx = W/2, cy = H/2 + 2, rad = 55;
+  const ang = i => (-90 + i * 60) * Math.PI / 180;
+  const pt = (i, v) => {
+    const t = clamp((v - lo) / (hi - lo), 0, 1);
+    return [cx + Math.cos(ang(i)) * rad * t, cy + Math.sin(ang(i)) * rad * t];
+  };
+  let g = '<svg width="100%" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="種目別レーダーチャート">';
+  for (let r = 1; r <= 4; r++){
+    const p = AP.map((a,i) => {
+      const x = cx + Math.cos(ang(i)) * rad * (r/4), y = cy + Math.sin(ang(i)) * rad * (r/4);
+      return x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+    g += '<polygon points="' + p + '" fill="' + (r===4 ? "#f7fafd" : "none") + '" stroke="#dbe6f2" stroke-width="1"/>';
+  }
+  AP.forEach((a,i) => {
+    const x = cx + Math.cos(ang(i)) * rad, y = cy + Math.sin(ang(i)) * rad;
+    g += '<line x1="' + cx + '" y1="' + cy + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#e6eef7"/>';
+    const lx = cx + Math.cos(ang(i)) * (rad + 22), ly = cy + Math.sin(ang(i)) * (rad + 18);
+    g += '<text x="' + lx.toFixed(1) + '" y="' + (ly+3).toFixed(1) + '" text-anchor="middle" font-size="9" fill="#7d93aa">' + a.n + '</text>';
+  });
+
+  // 採用平均のポリゴン
+  if (mem.length){
+    const p = AP.map((a,i) => pt(i, R.avg[a.k]).map(v => v.toFixed(1)).join(",")).join(" ");
+    g += '<polygon points="' + p + '" fill="rgba(26,99,196,.13)" stroke="#1a63c4" stroke-width="2" stroke-linejoin="round"/>';
+  }
+  // 個人ライン
+  mem.forEach((m, mi) => {
+    if (hidden.has(m.id)) return;
+    const col = COLORS[mi % COLORS.length];
+    const p = AP.map((a,i) => pt(i, m.sc[a.k].on ? scoreOf(m, a.k) : lo).map(v => v.toFixed(1)).join(",")).join(" ");
+    g += '<polygon points="' + p + '" fill="none" stroke="' + col + '" stroke-width="1.2" stroke-opacity=".72" stroke-linejoin="round"/>';
+  });
+  g += '<text x="3" y="' + (H-4) + '" font-size="8.5" fill="#a8b8c9">外周 ' + hi.toFixed(1) + ' ／ 中心 ' + lo.toFixed(1) + '</text>';
+  g += '</svg>';
+  radar.innerHTML = g;
+
+  let lg = '<button data-lg="avg" aria-pressed="true" disabled><span class="sw" style="background:#1a63c4"></span>採用平均</button>';
+  mem.forEach((m, mi) => {
+    lg += '<button data-lg="' + m.id + '" aria-pressed="' + (hidden.has(m.id) ? "false" : "true") + '">' +
+          '<span class="sw" style="background:' + COLORS[mi % COLORS.length] + '"></span>' + esc(m.name) + '</button>';
+  });
+  radarLegend.innerHTML = lg;
+
+  /* --- 種目別テーブル --- */
+  const maxAp = Math.max.apply(null, AP.map(a => R.ap[a.k]).concat([1]));
+  let t = '<div><h3>種目別（採用' + n + '人）</h3><table class="mini"><thead><tr>' +
+          '<th>種目</th><th>合計</th><th>平均</th><th>最高</th><th title="最下位で採用された得点と、次点の得点の差">余裕</th><th style="width:70px"></th>' +
+          '</tr></thead><tbody>';
+  AP.forEach(a => {
+    const best = mem.filter(m => m.sc[a.k].on).map(m => scoreOf(m, a.k));
+    const mx = best.length ? Math.max.apply(null, best) : 0;
+    const mg = R.margin[a.k];
+    t += '<tr><td>' + a.n + '</td>' +
+         '<td class="num">' + f3(R.ap[a.k]) + '</td>' +
+         '<td class="num">' + f3(R.avg[a.k]) + '</td>' +
+         '<td class="num">' + f3(mx) + '</td>' +
+         '<td class="num ' + (mg === null ? "zero" : "") + '">' + (mg === null ? "—" : f3(mg)) + '</td>' +
+         '<td><span class="bartrack"><span class="bar" style="width:' + (R.ap[a.k]/maxAp*100).toFixed(1) + '%"></span></span></td></tr>';
+  });
+  t += '</tbody></table></div>';
+
+  /* --- 貢献度 --- */
+  t += '<div><h3>エントリー選手の貢献</h3><table class="mini"><thead><tr>' +
+       '<th>選手</th><th>個人総合</th><th>採用本数</th><th>採用得点</th><th>抜けた時</th></tr></thead><tbody>';
+  mem.forEach(m => {
+    const b = R.byAth[m.id];
+    const without = computeFor(mem.filter(x => x.id !== m.id), S.mode);
+    const diff = r3(without.total - R.total);
+    t += '<tr><td>' + esc(m.name) + '</td>' +
+         '<td class="num">' + f3(aaOf(m)) + '</td>' +
+         '<td class="num">' + b.n + ' / 6</td>' +
+         '<td class="num">' + f3(b.sum) + '</td>' +
+         '<td class="num" style="color:' + (diff < 0 ? "var(--loss)" : "var(--mute)") + '">' + (diff === 0 ? "±0.000" : (diff > 0 ? "+" : "") + f3(diff)) + '</td></tr>';
+  });
+  t += '</tbody></table><p class="note">「抜けた時」＝その選手が欠場し、残りだけで組んだ場合の団体総合の増減。</p></div>';
+
+  /* --- 入替シミュレーション --- */
+  const bench = S.athletes.slice(S.entry);
+  if (bench.length && mem.length){
+    const rows = bench.map(b => {
+      let best = null;
+      mem.forEach(m => {
+        const swapped = mem.map(x => x.id === m.id ? b : x);
+        const g2 = r3(computeFor(swapped, S.mode).total - R.total);
+        if (!best || g2 > best.gain) best = {gain:g2, out:m};
+      });
+      return {b, gain:best.gain, out:best.out};
+    }).sort((x,y) => y.gain - x.gain);
+    t += '<div><h3>Res. を入れたら</h3><table class="mini"><thead><tr>' +
+         '<th>入れる</th><th>個人総合</th><th>外す</th><th>団体総合</th><th style="width:56px"></th></tr></thead><tbody>';
+    rows.slice(0, 8).forEach(r => {
+      t += '<tr><td>' + esc(r.b.name) + '</td>' +
+           '<td class="num">' + f3(aaOf(r.b)) + '</td>' +
+           '<td>' + esc(r.out.name) + '</td>' +
+           '<td class="num ' + (r.gain > 0 ? "gain" : (r.gain < 0 ? "loss" : "zero")) + '">' + (r.gain > 0 ? "+" : "") + f3(r.gain) + '</td>' +
+           '<td><button class="onbtn" data-swap="' + r.b.id + '" data-out="' + r.out.id + '">入替</button></td></tr>';
+    });
+    t += '</tbody></table><p class="note">Res. の選手ごとに、最も伸びる入替の組合せを1件ずつ表示しています。</p></div>';
+  }
+  anTables.innerHTML = t;
+}
+
+/* ========== 描画：選手パネル ========== */
+function renderPanel(){
+  const R = compute();
+  let h = "";
+  S.athletes.forEach((a, idx) => {
+    const inTeam = idx < S.entry;
+    if (idx === S.entry) h += '<div class="divider">ここから Res.</div>';
+    h += '<article class="ath ' + (inTeam ? "inteam" : "bench") + '" data-id="' + a.id + '" data-open="' + (a.open ? 1 : 0) + '" draggable="false">';
+    h +=   '<div class="ath-head" data-act="toggle">';
+    h +=     '<span class="handle" data-act="handle" title="ドラッグで並べ替え">⣿</span>';
+    h +=     inTeam ? '<span class="badge">Entry ' + (idx+1) + '</span>' : '<span class="badge bench">Res.</span>';
+    h +=     '<span class="ath-name" title="クリックで詳細を開閉／ダブルクリックで名前を変更">' + esc(a.name) + '</span>';
+    h +=     '<span class="aa"><span class="lab">個人総合</span><span class="val num" data-aa="' + a.id + '">' + f3(aaOf(a)) + '</span></span>';
+    h +=     '<button class="chev" aria-label="詳細を開閉">▼</button>';
+    h +=   '</div>';
+    if (a.open){
+      h += '<div class="ath-body"><table class="detail"><thead><tr><th></th>' +
+           AP.map(ap => '<th title="' + ap.n + '">' + apIconSvg(ap.k, 18) + '</th>').join("") + '</tr></thead><tbody>';
+      h += '<tr class="r-total"><td>得点</td>' +
+           AP.map(ap => '<td class="num" data-tot="' + a.id + ':' + ap.k + '">' +
+             (a.sc[ap.k].on ? f3(scoreOf(a, ap.k)) : "—") + '</td>').join("") + '</tr>';
+      [["d","D"],["e","E"],["nd","ND"],["sb","SB"]].forEach(f => {
+        h += '<tr data-row="' + f[0] + '"><td>' + f[1] + '</td>';
+        AP.forEach(ap => {
+          const c = a.sc[ap.k], v = c[f[0]];
+          const txt = f[0] === "e" ? f3(v) : f1(v);
+          h += '<td><span class="cellwrap">' +
+               '<button class="step" data-step="-1" data-t="' + a.id + ':' + ap.k + ':' + f[0] + '" tabindex="-1" aria-label="下げる">▼</button>' +
+               '<button class="cell' + (c.on ? "" : " off") + '" data-edit="' + a.id + ':' + ap.k + ':' + f[0] + '">' + txt + '</button>' +
+               '<button class="step" data-step="1" data-t="' + a.id + ':' + ap.k + ':' + f[0] + '" tabindex="-1" aria-label="上げる">▲</button>' +
+               '</span></td>';
+        });
+        h += '</tr>';
+      });
+      h += '<tr class="r-on"><td>出場</td>' +
+           AP.map(ap => '<td><button class="onbtn" data-on="' + a.id + ':' + ap.k + '" aria-pressed="' + (a.sc[ap.k].on ? "true" : "false") + '">' +
+             (a.sc[ap.k].on ? "する" : "しない") + '</button></td>').join("") + '</tr>';
+      h += '</tbody></table>';
+      h += '<div class="ath-foot">';
+      h +=   inTeam
+             ? '<button data-act="bench" class="primary">Res. に回す</button>'
+             : '<button data-act="promote" class="primary">エントリーに入れる</button>';
+      h +=   '<button data-act="up">↑</button><button data-act="down">↓</button>';
+      h +=   '<span class="spacer"></span>';
+      h +=   '<button data-act="rename">名前を変更</button>';
+  h +=   '<button data-act="clear">得点をリセット</button>';
+      h +=   '<button data-act="dup">複製</button>';
+      h +=   '<button data-act="del" class="del">削除</button>';
+      h += '</div>';
+      h += '</div>';
+    }
+    h += '</article>';
+  });
+  if (!S.athletes.length) h = '<div class="card"><div class="empty">選手がいません。<br>上の「選手を追加」またはCSV取込から始めてください。</div></div>';
+  panel.innerHTML = h;
+  renderTeam(R);
+  renderAnalysis(R);
+}
+
+/* 数値だけ更新（DOMは作り直さない＝入力中でも壊れない） */
+function refresh(){
+  const R = compute();
+  S.athletes.forEach(a => {
+    const aaEl = panel.querySelector('[data-aa="' + a.id + '"]');
+    if (aaEl) aaEl.textContent = f3(aaOf(a));
+    AP.forEach(ap => {
+      const tEl = panel.querySelector('[data-tot="' + a.id + ':' + ap.k + '"]');
+      if (tEl) tEl.textContent = a.sc[ap.k].on ? f3(scoreOf(a, ap.k)) : "—";
+    });
+  });
+  renderTeam(R);
+  renderAnalysis(R);
+  save();
+}
+
+/* ========== 編集 ========== */
+function parseTarget(t){
+  const p = t.split(":");
+  const a = S.athletes.find(x => x.id === p[0]);
+  return a ? {a, k:p[1], f:p[2]} : null;
+}
+function beginEdit(btn){
+  const t = parseTarget(btn.dataset.edit);
+  if (!t) return;
+  const cur = t.a.sc[t.k][t.f];
+  const inp = document.createElement("input");
+  inp.className = "cell num";
+  inp.type = "text";
+  inp.inputMode = "decimal";
+  inp.value = t.f === "e" ? f3(cur) : f1(cur);
+  btn.replaceWith(inp);
+  inp.focus();
+  inp.select();
+
+  let done = false;
+  const commit = ok => {
+    if (done) return;
+    done = true;
+    if (ok){
+      const raw = inp.value.replace(/[^\d.\-]/g, "");
+      const v = parseFloat(raw);
+      t.a.sc[t.k][t.f] = normVal(t.f, isNaN(v) ? cur : v);
+    }
+    const nb = document.createElement("button");
+    nb.className = "cell" + (t.a.sc[t.k].on ? "" : " off");
+    nb.dataset.edit = t.a.id + ":" + t.k + ":" + t.f;
+    nb.textContent = t.f === "e" ? f3(t.a.sc[t.k][t.f]) : f1(t.a.sc[t.k][t.f]);
+    inp.replaceWith(nb);
+    refresh();
+  };
+  inp.addEventListener("keydown", e => {
+    if (e.key === "Enter"){ e.preventDefault(); commit(true); }
+    else if (e.key === "Escape"){ e.preventDefault(); commit(false); }
+    else if (e.key === "ArrowUp" || e.key === "ArrowDown"){
+      e.preventDefault();
+      const v = parseFloat(inp.value) || 0;
+      const nv = stepVal(t.f, normVal(t.f, v), e.key === "ArrowUp" ? 1 : -1);
+      inp.value = t.f === "e" ? f3(nv) : f1(nv);
+      t.a.sc[t.k][t.f] = nv;
+      refresh();
+    }
+  });
+  inp.addEventListener("blur", () => commit(true));
+}
+
+/* ========== 並べ替え・メンバー操作 ========== */
+function swapPos(idA, idB){
+  const i = S.athletes.findIndex(a => a.id === idA), j = S.athletes.findIndex(a => a.id === idB);
+  if (i < 0 || j < 0 || i === j) return;
+  const t = S.athletes[i];
+  S.athletes[i] = S.athletes[j];
+  S.athletes[j] = t;
+  renderPanel();
+  save();
+}
+function moveTo(id, to){
+  const from = S.athletes.findIndex(a => a.id === id);
+  if (from < 0) return;
+  to = clamp(to, 0, S.athletes.length - 1);
+  const [x] = S.athletes.splice(from, 1);
+  S.athletes.splice(to, 0, x);
+  renderPanel();
+  save();
+}
+
+/* ========== イベント ========== */
+const teamCard = document.getElementById("teamCard");
+const panel = document.getElementById("panel");
+const radar = document.getElementById("radar");
+const radarLegend = document.getElementById("radarLegend");
+const anTables = document.getElementById("anTables");
+const anSub = document.getElementById("anSub");
+const anCard = document.getElementById("anCard");
+const anToggle = document.getElementById("anToggle");
+anToggle.addEventListener("click", () => {
+  S.anOpen = !(S.anOpen !== false);
+  renderAnalysis(compute());
+  save();
+});
+const modesEl = document.getElementById("modes");
+const entriesEl = document.getElementById("entries");
+const toastEl = document.getElementById("toast");
+
+function renderModes(){
+  entriesEl.innerHTML = [3,4,5,6].map(m =>
+    '<button data-entry="' + m + '" aria-pressed="' + (S.entry === m ? "true" : "false") + '">' + m + '人</button>').join("");
+  modesEl.innerHTML = [3,4,5,6].map(m =>
+    '<button data-mode="' + m + '"' + (m > S.entry ? ' disabled title="エントリー人数を超えています"' : '') +
+    ' aria-pressed="' + (S.mode === m ? "true" : "false") + '">' +
+    '<b>' + m + '人</b> / 上位' + RULE[m] + '</button>').join("");
+}
+entriesEl.addEventListener("click", e => {
+  const b = e.target.closest("[data-entry]");
+  if (!b) return;
+  S.entry = +b.dataset.entry;
+  if (S.mode > S.entry) S.mode = S.entry;
+  renderModes(); renderPanel(); save();
+});
+modesEl.addEventListener("click", e => {
+  const b = e.target.closest("[data-mode]");
+  if (!b || b.disabled) return;
+  S.mode = +b.dataset.mode;
+  if (S.entry < S.mode) S.entry = S.mode;
+  renderModes(); renderPanel(); save();
+});
+
+panel.addEventListener("dblclick", e => {
+  const nm = e.target.closest(".ath-name");
+  if (!nm) return;
+  const card = e.target.closest(".ath");
+  const a = S.athletes.find(x => x.id === card.dataset.id);
+  if (a) renameAthlete(a);
+});
+function renameAthlete(a){
+  const nm = prompt("選手名", a.name);
+  if (nm !== null && nm.trim()){ a.name = nm.trim(); renderPanel(); save(); }
+}
+panel.addEventListener("click", e => {
+  const card = e.target.closest(".ath");
+  if (!card) return;
+  const a = S.athletes.find(x => x.id === card.dataset.id);
+  if (!a) return;
+  const idx = S.athletes.indexOf(a);
+
+  const step = e.target.closest("[data-step]");
+  if (step){
+    const t = parseTarget(step.dataset.t);
+    if (t){
+      t.a.sc[t.k][t.f] = stepVal(t.f, t.a.sc[t.k][t.f], +step.dataset.step);
+      const cell = step.parentElement.querySelector("[data-edit]");
+      if (cell) cell.textContent = t.f === "e" ? f3(t.a.sc[t.k][t.f]) : f1(t.a.sc[t.k][t.f]);
+      refresh();
+    }
+    return;
+  }
+  const ed = e.target.closest("[data-edit]");
+  if (ed){ beginEdit(ed); return; }
+
+  const on = e.target.closest("[data-on]");
+  if (on){
+    const t = parseTarget(on.dataset.on + ":x");
+    if (t){
+      const c = t.a.sc[t.k];
+      c.on = !c.on;
+      on.setAttribute("aria-pressed", c.on ? "true" : "false");
+      on.textContent = c.on ? "する" : "しない";
+      card.querySelectorAll('[data-edit^="' + t.a.id + ':' + t.k + ':"]')
+          .forEach(el => el.classList.toggle("off", !c.on));
+      refresh();
+    }
+    return;
+  }
+  const act = (e.target.closest("[data-act]") || {}).dataset;
+  const which = act ? act.act : null;
+
+  if (which === "rename"){ renameAthlete(a); return; }
+  if (which === "handle") return;
+  if (which === "toggle" || e.target.closest(".chev")){
+    a.open = !a.open;
+    renderPanel();
+    save();
+    return;
+  }
+  if (which === "promote"){ moveTo(a.id, S.entry - 1); return; }
+  if (which === "bench"){ moveTo(a.id, S.entry); return; }
+  if (which === "up"){ moveTo(a.id, idx - 1); return; }
+  if (which === "down"){ moveTo(a.id, idx + 1); return; }
+  if (which === "clear"){ a.sc = blankScores(); renderPanel(); save(); return; }
+  if (which === "dup"){
+    const c = JSON.parse(JSON.stringify(a));
+    c.id = newAthlete().id;
+    c.name = a.name + "（写し）";
+    S.athletes.splice(idx + 1, 0, c);
+    renderPanel(); save(); return;
+  }
+  if (which === "del"){
+    if (confirm(a.name + " を削除します。よろしいですか？")){
+      S.athletes.splice(idx, 1);
+      renderPanel(); save();
+    }
+    return;
+  }
+});
+
+teamCard.addEventListener("click", e => {
+  if (!e.target.closest("#btnAuto")) return;
+  const mem = teamMembers();
+  AP.forEach(a => {
+    const rows = mem.map((m,i) => ({m, i, v:r3(m.sc[a.k].d + m.sc[a.k].e - m.sc[a.k].nd + m.sc[a.k].sb)}));
+    rows.sort((x,y) => y.v - x.v || x.i - y.i);
+    rows.forEach((r, idx) => r.m.sc[a.k].on = idx < S.mode && r.v > 0);
+  });
+  renderPanel();
+  save();
+  toast("各種目の上位" + S.mode + "名を演技者にしました");
+});
+radarLegend.addEventListener("click", e => {
+  const b = e.target.closest("[data-lg]");
+  if (!b || b.dataset.lg === "avg") return;
+  hidden.has(b.dataset.lg) ? hidden.delete(b.dataset.lg) : hidden.add(b.dataset.lg);
+  renderAnalysis(compute());
+});
+anTables.addEventListener("click", e => {
+  const b = e.target.closest("[data-swap]");
+  if (!b) return;
+  swapPos(b.dataset.swap, b.dataset.out);
+});
+
+/* drag & drop：ハンドルまたはヘッダーを掴んだときだけ有効にする */
+let dragId = null;
+const clearDrag = () => panel.querySelectorAll('.ath[draggable="true"]').forEach(c => c.setAttribute("draggable", "false"));
+panel.addEventListener("mousedown", e => {
+  const card = e.target.closest(".ath");
+  if (!card) return;
+  const grip = e.target.closest(".handle") || (e.target.closest(".ath-head") && !e.target.closest("button"));
+  card.setAttribute("draggable", grip ? "true" : "false");
+});
+document.addEventListener("mouseup", clearDrag);
+panel.addEventListener("dragstart", e => {
+  const card = e.target.closest(".ath");
+  if (!card) return;
+  dragId = card.dataset.id;
+  card.classList.add("dragging");
+  e.dataTransfer.effectAllowed = "move";
+  try{ e.dataTransfer.setData("text/plain", dragId); }catch(_){}
+});
+panel.addEventListener("dragend", () => {
+  dragId = null;
+  panel.querySelectorAll(".ath").forEach(c => c.classList.remove("dragging","over"));
+  clearDrag();
+});
+panel.addEventListener("dragover", e => {
+  if (!dragId) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  const card = e.target.closest(".ath");
+  panel.querySelectorAll(".ath").forEach(c => c.classList.toggle("over", c === card && c.dataset.id !== dragId));
+});
+panel.addEventListener("drop", e => {
+  if (!dragId) return;
+  e.preventDefault();
+  const card = e.target.closest(".ath");
+  if (!card || card.dataset.id === dragId){ dragId = null; renderPanel(); return; }
+  const target = S.athletes.findIndex(a => a.id === card.dataset.id);
+  const id = dragId;
+  dragId = null;
+  moveTo(id, target);
+});
+
+/* ツールバー */
+document.getElementById("btnAdd").addEventListener("click", () => {
+  const a = newAthlete("選手" + (S.athletes.length + 1));
+  a.open = true;
+  AP.forEach(ap => a.sc[ap.k].on = true);
+  S.athletes.push(a);
+  renderPanel(); save();
+  const el = panel.querySelector('[data-id="' + a.id + '"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({block:"nearest"});
+});
+document.getElementById("btnReset").addEventListener("click", () => {
+  if (!confirm("保存されている全データを消して、サンプルの状態に戻します。よろしいですか？")) return;
+  S = seedState();
+  seq = S.athletes.length;
+  hidden = new Set();
+  renderModes(); renderPanel(); save();
+  toast("データを初期化しました");
+});
+document.getElementById("btnSave").addEventListener("click", () => {
+  download("team-score-" + stamp() + ".json", JSON.stringify(S, null, 2), "application/json");
+});
+document.getElementById("fileRestore").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  try{
+    const o = JSON.parse(await f.text());
+    if (!o || !Array.isArray(o.athletes)) throw new Error("形式が違います");
+    S = o;
+    S.mode = RULE[S.mode] ? S.mode : 5;
+    S.entry = RULE[S.entry] ? S.entry : S.mode;
+    if (S.entry < S.mode) S.entry = S.mode;
+    S.athletes.forEach(a => AP.forEach(ap => {
+      const c = a.sc[ap.k] || {};
+      a.sc[ap.k] = {d:+c.d||0, e:+c.e||0, nd:+c.nd||0, sb:+c.sb||0, on:c.on !== false};
+    }));
+    seq = S.athletes.length;
+    renderModes(); renderPanel(); save();
+    toast("復元しました");
+  }catch(err){ toast("読み込めませんでした：" + err.message); }
+  e.target.value = "";
+});
+document.getElementById("btnCsvOut").addEventListener("click", () => {
+  const rows = [["選手名","種目","D","E","ND","SB"]];
+  S.athletes.forEach(a => AP.forEach(ap => {
+    const c = a.sc[ap.k];
+    if (!c.on) return;
+    rows.push([a.name, ap.n, f1(c.d), f3(c.e), f1(c.nd), f1(c.sb)]);
+  }));
+  download("team-score-" + stamp() + ".csv", "\ufeff" + rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv");
+});
+
+/* ========== CSV ========== */
+const dlg = document.getElementById("dlgImport");
+document.getElementById("btnImport").addEventListener("click", () => {
+  document.getElementById("impMsg").textContent = "";
+  dlg.showModal();
+});
+document.getElementById("btnImpCancel").addEventListener("click", () => dlg.close());
+document.getElementById("btnSample").addEventListener("click", () => {
+  const rows = [["選手名","種目","D","E","ND","SB"]];
+  seedState().athletes.forEach(a => AP.forEach(ap => {
+    const c = a.sc[ap.k];
+    rows.push([a.name, ap.n, f1(c.d), f3(c.e), f1(c.nd), f1(c.sb)]);
+  }));
+  download("sample.csv", "\ufeff" + rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv");
+});
+document.getElementById("fileCsv").addEventListener("change", async e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const buf = await f.arrayBuffer();
+  document.getElementById("csvText").value = decodeText(buf);
+  document.getElementById("impMsg").textContent = "";
+});
+document.getElementById("btnImpRun").addEventListener("click", () => {
+  const txt = document.getElementById("csvText").value;
+  const msg = document.getElementById("impMsg");
+  if (!txt.trim()){ msg.textContent = "取り込む内容がありません。"; return; }
+  try{
+    const list = parseCsvToAthletes(txt);
+    if (!list.length) throw new Error("選手を1人も読み取れませんでした。列名をご確認ください。");
+    const mode = document.querySelector('input[name="impmode"]:checked').value;
+    if (mode === "replace"){
+      S.athletes = list;
+    }else{
+      list.forEach(nw => {
+        const ex = S.athletes.find(a => a.name === nw.name);
+        if (ex) ex.sc = nw.sc;
+        else S.athletes.push(nw);
+      });
+    }
+    seq += list.length;
+    hidden = new Set();
+    dlg.close();
+    renderPanel(); save();
+    toast(list.length + "人を取り込みました");
+  }catch(err){ msg.textContent = err.message; }
+});
+
+function decodeText(buf){
+  try{
+    const s = new TextDecoder("utf-8", {fatal:true}).decode(buf);
+    return s.replace(/^\ufeff/, "");
+  }catch(e){
+    try{ return new TextDecoder("shift_jis").decode(buf); }
+    catch(e2){ return new TextDecoder().decode(buf); }
+  }
+}
+function splitLines(t){
+  return t.replace(/\r\n?/g, "\n").split("\n").filter(l => l.trim() !== "");
+}
+function splitRow(line, sep){
+  const out = []; let cur = "", q = false;
+  for (let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if (q){
+      if (ch === '"'){ if (line[i+1] === '"'){ cur += '"'; i++; } else q = false; }
+      else cur += ch;
+    }else{
+      if (ch === '"') q = true;
+      else if (ch === sep){ out.push(cur); cur = ""; }
+      else cur += ch;
+    }
+  }
+  out.push(cur);
+  return out.map(s => s.trim());
+}
+const csvCell = v => /[",\n]/.test(v) ? '"' + String(v).replace(/"/g, '""') + '"' : v;
+
+const AP_ALIAS = {
+  fx:["fx","ゆか","床","ユカ","floor"],
+  ph:["ph","あん馬","鞍馬","あんば","アンバ","pommel","pommelhorse","horse"],
+  sr:["sr","つり輪","吊り輪","つりわ","ツリワ","輪","rings","ring"],
+  vt:["vt","跳馬","とび馬","飛馬","チョウバ","跳躍","vault","vaulting"],
+  pb:["pb","平行棒","へいこうぼう","parallelbars","parallel","pbars"],
+  hb:["hb","鉄棒","てつぼう","horizontalbar","horizontal","highbar","hbar"]
+};
+const norm = s => String(s).toLowerCase().replace(/[\s　_\-()（）・\.]/g, "");
+function apKeyOf(s){
+  const t = norm(s);
+  if (!t) return null;
+  let best = null;
+  for (const k in AP_ALIAS){
+    for (const al of AP_ALIAS[k]){
+      const a = norm(al);
+      if (t === a) return k;
+      if (t.indexOf(a) >= 0 && (!best || a.length > best.len)) best = {k, len:a.length};
+    }
+  }
+  return best ? best.k : null;
+}
+function fieldOf(s){
+  const t = norm(s);
+  if (!t) return null;
+  if (/(^|[^a-z])nd([^a-z]|$)/.test(t) || t.indexOf("ニュートラル") >= 0 || t.indexOf("減点") >= 0 || t.indexOf("nd") >= 0) return "nd";
+  if (t.indexOf("sb") >= 0 || t.indexOf("着地") >= 0 || t.indexOf("加点") >= 0 || t.indexOf("ボーナス") >= 0) return "sb";
+  if (/(^|[^a-z])e([^a-z]|$)/.test(t) || t.indexOf("実施") >= 0 || t.indexOf("escore") >= 0) return "e";
+  if (/(^|[^a-z])d([^a-z]|$)/.test(t) || t.indexOf("難度") >= 0 || t.indexOf("dscore") >= 0) return "d";
+  return null;
+}
+const isNameCol = s => {
+  const t = norm(s);
+  return t.indexOf("選手") >= 0 || t.indexOf("氏名") >= 0 || t === "名前" || t === "name" || t.indexOf("athlete") >= 0 || t.indexOf("gymnast") >= 0;
+};
+const numOf = s => {
+  const t = String(s).replace(/[^\d.\-]/g, "");
+  const v = parseFloat(t);
+  return isNaN(v) ? null : v;
+};
+
+function parseCsvToAthletes(text){
+  const lines = splitLines(text);
+  if (lines.length < 2) throw new Error("見出し行とデータ行が必要です。");
+  const sep = (lines[0].split("\t").length > lines[0].split(",").length) ? "\t" : ",";
+  const head = splitRow(lines[0], sep);
+
+  let nameIdx = head.findIndex(isNameCol);
+  if (nameIdx < 0) nameIdx = 0;
+
+  const apCol = head.findIndex(h => { const t = norm(h); return t === "種目" || t === "apparatus" || t === "event"; });
+  const map = new Map();   // name -> athlete
+  const get = nm => {
+    let a = map.get(nm);
+    if (!a){ a = newAthlete(nm); map.set(nm, a); }
+    return a;
+  };
+  const put = (a, k, f, v) => { a.sc[k][f] = normVal(f, v); a.sc[k].on = true; };
+
+  if (apCol >= 0){
+    /* 縦持ち：1行1種目 */
+    const cols = {};
+    head.forEach((h, i) => { const f = fieldOf(h); if (f && i !== nameIdx && i !== apCol) cols[f] = i; });
+    const totCol = head.findIndex((h, i) => i !== nameIdx && i !== apCol && !fieldOf(h) && /(得点|合計|score|total)/.test(norm(h)));
+    lines.slice(1).forEach(l => {
+      const r = splitRow(l, sep);
+      const nm = (r[nameIdx] || "").trim();
+      const k = apKeyOf(r[apCol] || "");
+      if (!nm || !k) return;
+      const a = get(nm);
+      let any = false;
+      ["d","e","nd","sb"].forEach(f => {
+        if (cols[f] === undefined) return;
+        const v = numOf(r[cols[f]]);
+        if (v !== null){ put(a, k, f, v); any = true; }
+      });
+      if (!any && totCol >= 0){
+        const v = numOf(r[totCol]);
+        if (v !== null){ put(a, k, "e", v); any = true; }
+      }
+      if (any && !(a.sc[k].d || a.sc[k].e || a.sc[k].nd || a.sc[k].sb)) a.sc[k].on = false;
+    });
+  }else{
+    /* 横持ち：1行1選手 */
+    const cols = [];   // {i, k, f}
+    head.forEach((h, i) => {
+      if (i === nameIdx) return;
+      const k = apKeyOf(h);
+      if (!k) return;
+      cols.push({i, k, f:fieldOf(h) || "total"});
+    });
+    if (!cols.length) throw new Error("種目の列が見つかりません。列名に種目名（ゆか／FX など）を入れてください。");
+    lines.slice(1).forEach(l => {
+      const r = splitRow(l, sep);
+      const nm = (r[nameIdx] || "").trim();
+      if (!nm) return;
+      const a = get(nm);
+      cols.forEach(c => {
+        const v = numOf(r[c.i]);
+        if (v === null) return;
+        if (c.f === "total"){ if (v > 0) put(a, c.k, "e", v); }
+        else put(a, c.k, c.f, v);
+      });
+    });
+    /* 値が全部0の種目は「演技しない」に戻す */
+    map.forEach(a => AP.forEach(ap => {
+      const c = a.sc[ap.k];
+      if (!(c.d || c.e || c.nd || c.sb)) c.on = false;
+    }));
+  }
+  return Array.from(map.values());
+}
+
+/* ========== 小物 ========== */
+function download(name, text, mime){
+  const url = URL.createObjectURL(new Blob([text], {type:mime + ";charset=utf-8"}));
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+}
+function stamp(){
+  const d = new Date(), p = n => String(n).padStart(2, "0");
+  return d.getFullYear() + p(d.getMonth()+1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes());
+}
+let toastTimer = null;
+function toast(m){
+  toastEl.textContent = m;
+  toastEl.classList.add("on");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("on"), 2200);
+}
+window.addEventListener("beforeunload", () => {
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+});
+
+renderModes();
+renderPanel();
+</script>
+</body>
+</html>
