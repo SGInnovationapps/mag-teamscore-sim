@@ -331,7 +331,8 @@ const RULE = {3:3, 4:3, 5:4, 6:5};          // 出場人数 → 各種目のカ�
 const E_DEC = [0,100,200,300,333,400,500,600,666,700,800,900,999];
 const MAXV = {d:20, e:20, nd:10, sb:10};   // e/d は合計点取込に備えて広めに取る
 const COLORS = ["#1a63c4","#0f7a5a","#b4462f","#7b4fb0","#b8860b","#2e8ab0","#a13a6d","#4a6b1f"];
-const KEY = "mag_team_sim_v1";
+const KEY = "mag_team_sim_v2";
+try{ localStorage.removeItem("mag_team_sim_v1"); }catch(e){}   // 旧バージョンの自動サンプルを引きずらない
 
 /* ========== 数値ユーティリティ ========== */
 const r3 = x => Math.round((x + Number.EPSILON) * 1000) / 1000;
@@ -376,19 +377,28 @@ function blankScores(){
 function newAthlete(name){
   return {id:"a" + (++seq) + "_" + Math.random().toString(36).slice(2,6), name:name || "選手", open:false, sc:blankScores()};
 }
-function seedState(){
+const SURNAMES = ["佐藤","鈴木","高橋","田中","伊藤","渡辺","山本","中村","小林","加藤","吉田","山田","松本","井上","木村","清水","森","池田","橋本","石川"];
+const GIVENS  = ["蓮","湊","樹","大和","颯太","悠真","陽太","律","新","結翔","碧","朝陽","奏太","陽翔","悠人","晴斗"];
+function randomNames(n){
+  const sn = SURNAMES.slice(), gn = GIVENS.slice(), out = [];
+  const pick = arr => arr.splice(Math.floor(Math.random() * arr.length), 1)[0];
+  for (let i = 0; i < n; i++) out.push(pick(sn) + " " + pick(gn));
+  return out;
+}
+function sampleState(){
   const src = [
-    ["大宅 隼人",[[5.6,8.500,0,0],[5.2,8.366,0,0],[5.4,8.633,0,0],[5.6,9.100,0,0],[5.8,8.400,0,0],[5.4,8.266,0,0]]],
-    ["平 伊吹",  [[5.4,8.666,0,0],[5.9,8.966,0,0],[5.2,8.766,0,0],[5.2,8.900,0,0],[6.0,8.566,0,0],[5.6,8.533,0,0]]],
-    ["長野 快星",[[5.3,8.533,0,0],[5.6,8.966,0,0],[5.5,8.166,0,0],[5.6,9.000,0,0],[5.8,8.900,0,0],[6.0,8.233,0,0]]],
-    ["中井 統慎",[[5.8,8.033,0,0],[5.0,8.333,0,0],[5.1,8.133,0,0],[5.2,8.066,0,0],[6.1,8.166,0,0],[5.5,8.533,0,0]]],
-    ["新井 唯斗",[[5.1,8.400,0,0],[4.8,8.100,0,0],[5.6,8.500,0,0],[5.2,8.800,0,0],[5.5,8.300,0,0],[5.2,8.000,0,0]]],
-    ["三宅 悠真",[[4.9,8.633,0,0],[5.3,8.466,0,0],[5.0,8.366,0,0],[5.6,9.033,0,0],[5.2,8.633,0,0],[5.8,8.100,0,0]]]
+    [[5.6,8.500,0,0],[5.2,8.366,0,0],[5.4,8.633,0,0],[5.6,9.100,0,0],[5.8,8.400,0,0],[5.4,8.266,0,0]],
+    [[5.4,8.666,0,0],[5.9,8.966,0,0],[5.2,8.766,0,0],[5.2,8.900,0,0],[6.0,8.566,0,0],[5.6,8.533,0,0]],
+    [[5.3,8.533,0,0],[5.6,8.966,0,0],[5.5,8.166,0,0],[5.6,9.000,0,0],[5.8,8.900,0,0],[6.0,8.233,0,0]],
+    [[5.8,8.033,0,0],[5.0,8.333,0,0],[5.1,8.133,0,0],[5.2,8.066,0,0],[6.1,8.166,0,0],[5.5,8.533,0,0]],
+    [[5.1,8.400,0,0],[4.8,8.100,0,0],[5.6,8.500,0,0],[5.2,8.800,0,0],[5.5,8.300,0,0],[5.2,8.000,0,0]],
+    [[4.9,8.633,0,0],[5.3,8.466,0,0],[5.0,8.366,0,0],[5.6,9.033,0,0],[5.2,8.633,0,0],[5.8,8.100,0,0]]
   ];
-  const athletes = src.map((row,i) => {
-    const a = {id:"a" + (i+1), name:row[0], open:i === 0, sc:blankScores()};
-    AP.forEach((ap,j) => {
-      const v = row[1][j];
+  const names = randomNames(src.length);
+  const athletes = src.map((row, i) => {
+    const a = {id:"a" + (i+1), name:names[i], open:i === 0, sc:blankScores()};
+    AP.forEach((ap, j) => {
+      const v = row[j];
       a.sc[ap.k] = {d:v[0], e:v[1], nd:v[2], sb:v[3], on:true};
     });
     return a;
@@ -402,7 +412,10 @@ function seedState(){
     });
     if (worst) worst.a.sc[ap.k].on = false;
   });
-  return {v:1, entry:6, mode:5, anOpen:true, athletes};
+  return {v:2, entry:6, mode:5, anOpen:true, athletes};
+}
+function seedState(){
+  return {v:2, entry:6, mode:5, anOpen:true, athletes:[]};
 }
 function load(){
   try{
@@ -481,7 +494,8 @@ function renderTeam(R){
   h += '</div>';
 
   if (!mem.length){
-    h += '<div class="empty">選手がいません。「選手を追加」かCSV取込から始めてください。</div>';
+    h += '<div class="empty">選手がまだいません。<br>ツールバーの「選手を追加」か「CSV取込」から始めてください。' +
+         '<div style="margin-top:12px"><button class="onbtn" id="btnLoadSample">サンプルデータを読み込む</button></div></div>';
     teamCard.innerHTML = h;
     return;
   }
@@ -579,6 +593,12 @@ function renderAnalysis(R){
           '<span class="sw" style="background:' + COLORS[mi % COLORS.length] + '"></span>' + esc(m.name) + '</button>';
   });
   radarLegend.innerHTML = lg;
+
+  if (!mem.length){
+    anTables.innerHTML = '<p class="note">選手を追加すると、種目別の集計・貢献度・入替シミュレーションがここに出ます。</p>';
+    radarLegend.innerHTML = "";
+    return;
+  }
 
   /* --- 種目別テーブル --- */
   const maxAp = Math.max.apply(null, AP.map(a => R.ap[a.k]).concat([1]));
@@ -692,7 +712,7 @@ function renderPanel(){
     }
     h += '</article>';
   });
-  if (!S.athletes.length) h = '<div class="card"><div class="empty">選手がいません。<br>上の「選手を追加」またはCSV取込から始めてください。</div></div>';
+  if (!S.athletes.length) h = '<div class="card"><div class="empty">ここに選手カードが並びます。<br>選手名をクリックすると、D・E・ND・SB を種目ごとに入力できます。</div></div>';
   panel.innerHTML = h;
   renderTeam(R);
   renderAnalysis(R);
@@ -904,6 +924,16 @@ panel.addEventListener("click", e => {
 });
 
 teamCard.addEventListener("click", e => {
+  if (e.target.closest("#btnLoadSample")){
+    const sm = sampleState();
+    S.athletes = sm.athletes;
+    S.entry = sm.entry;
+    S.mode = sm.mode;
+    seq = S.athletes.length;
+    renderModes(); renderPanel(); save();
+    toast("サンプルデータを読み込みました");
+    return;
+  }
   if (!e.target.closest("#btnAuto")) return;
   const mem = teamMembers();
   AP.forEach(a => {
@@ -979,12 +1009,12 @@ document.getElementById("btnAdd").addEventListener("click", () => {
   if (el && el.scrollIntoView) el.scrollIntoView({block:"nearest"});
 });
 document.getElementById("btnReset").addEventListener("click", () => {
-  if (!confirm("保存されている全データを消して、サンプルの状態に戻します。よろしいですか？")) return;
+  if (!confirm("保存されている選手データをすべて消します。よろしいですか？")) return;
   S = seedState();
   seq = S.athletes.length;
   hidden = new Set();
   renderModes(); renderPanel(); save();
-  toast("データを初期化しました");
+  toast("データを消しました");
 });
 document.getElementById("btnSave").addEventListener("click", () => {
   download("team-score-" + stamp() + ".json", JSON.stringify(S, null, 2), "application/json");
@@ -1028,7 +1058,7 @@ document.getElementById("btnImport").addEventListener("click", () => {
 document.getElementById("btnImpCancel").addEventListener("click", () => dlg.close());
 document.getElementById("btnSample").addEventListener("click", () => {
   const rows = [["選手名","種目","D","E","ND","SB"]];
-  seedState().athletes.forEach(a => AP.forEach(ap => {
+  sampleState().athletes.forEach(a => AP.forEach(ap => {
     const c = a.sc[ap.k];
     rows.push([a.name, ap.n, f1(c.d), f3(c.e), f1(c.nd), f1(c.sb)]);
   }));
