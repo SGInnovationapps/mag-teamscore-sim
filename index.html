@@ -173,11 +173,9 @@ table.mini tr:last-child td{border-bottom:0}
 .ath-body{padding:2px 0 0}
 table.detail{width:100%;border-collapse:collapse}
 table.detail th,table.detail td{padding:3px 4px;text-align:center;border-bottom:1px solid var(--line)}
-table.detail .sumhead{font-size:9.5px;color:var(--mute);font-weight:500;padding-bottom:6px}
-table.detail .rowsum{width:52px;padding-right:12px;text-align:right;font-size:10.5px;color:var(--mute)}
-tr.r-total .rowsum{background:var(--field)}
+.rowsum{font-size:9.5px;color:var(--mute);margin-left:3px;vertical-align:bottom;letter-spacing:-.01em}
 table.detail th:first-child,table.detail td:first-child{
-  text-align:left;width:52px;padding-left:12px;color:var(--mute);font-size:11px;font-weight:500;
+  text-align:left;width:66px;padding-left:12px;padding-right:2px;color:var(--mute);font-size:11px;font-weight:500;white-space:nowrap;
 }
 table.detail thead th{background:#fff;border-bottom:1px solid var(--rail);padding-bottom:5px}
 tr.r-total td{font-weight:700;font-size:13px;background:var(--field)}
@@ -681,13 +679,16 @@ function renderPanel(){
     if (a.open){
       h += '<div class="ath-body"><table class="detail"><thead><tr><th></th>' +
            AP.map(ap => '<th title="' + ap.n + '">' + apIconSvg(ap.k, 18) + '</th>').join("") +
-           '<th class="sumhead">6種目計</th></tr></thead><tbody>';
+           '</tr></thead><tbody>';
       h += '<tr class="r-total"><td>得点</td>' +
            AP.map(ap => '<td class="num" data-tot="' + a.id + ':' + ap.k + '">' +
-             (a.sc[ap.k].on ? f3(scoreOf(a, ap.k)) : "—") + '</td>').join("") +
-           '<td class="rowsum"></td></tr>';
+             (a.sc[ap.k].on ? f3(scoreOf(a, ap.k)) : "—") + '</td>').join("") + '</tr>';
       [["d","D"],["e","E"],["nd","ND"],["sb","SB"]].forEach(f => {
-        h += '<tr data-row="' + f[0] + '"><td>' + f[1] + '</td>';
+        const showSum = (f[0] === "d" || f[0] === "e");
+        const sumTxt = f[0] === "e" ? f3(sumField(a, "e")) : f1(sumField(a, "d"));
+        h += '<tr data-row="' + f[0] + '"><td>' + f[1] +
+             (showSum ? '<span class="rowsum num" data-sum="' + a.id + ':' + f[0] + '" title="6種目のD・Eの合計">' + sumTxt + '</span>' : '') +
+             '</td>';
         AP.forEach(ap => {
           const c = a.sc[ap.k], v = c[f[0]];
           const txt = f[0] === "e" ? f3(v) : f1(v);
@@ -697,15 +698,11 @@ function renderPanel(){
                '<button class="step" data-step="1" data-t="' + a.id + ':' + ap.k + ':' + f[0] + '" tabindex="-1" aria-label="上げる">▲</button>' +
                '</span></td>';
         });
-        const showSum = (f[0] === "d" || f[0] === "e");
-        h += '<td class="rowsum num"' + (showSum ? ' data-sum="' + a.id + ':' + f[0] + '"' : '') + '>' +
-             (showSum ? (f[0] === "e" ? f3(sumField(a, f[0])) : f1(sumField(a, f[0]))) : "") + '</td>';
         h += '</tr>';
       });
       h += '<tr class="r-on"><td>出場</td>' +
            AP.map(ap => '<td><button class="onbtn" data-on="' + a.id + ':' + ap.k + '" aria-pressed="' + (a.sc[ap.k].on ? "true" : "false") + '">' +
-             (a.sc[ap.k].on ? "する" : "しない") + '</button></td>').join("") +
-           '<td class="rowsum"></td></tr>';
+             (a.sc[ap.k].on ? "する" : "しない") + '</button></td>').join("") + '</tr>';
       h += '</tbody></table>';
       h += '<div class="ath-foot">';
       h +=   inTeam
