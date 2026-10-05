@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MAG団体得点シミュレーター</title>
+<title>男子体操 団体得点シミュレーター</title>
 <style>
 :root{
   --ink:#0f2237;
@@ -66,6 +66,43 @@ button{font:inherit;color:inherit}
 .tools button:hover,.tools label:hover{background:var(--field);color:var(--ink)}
 .tools .danger:hover{border-color:#e2b7ac;color:var(--loss)}
 
+/* ---------- tabs / compare ---------- */
+.subbar{max-width:1760px;margin:0 auto;padding:12px 18px 0;display:flex;flex-direction:column;gap:10px}
+.tabbar{display:flex;align-items:center;gap:10px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;flex:1;min-width:0}
+.tab{display:flex;align-items:baseline;gap:8px;padding:6px 6px 6px 12px;border:1px solid var(--line);background:var(--paper);
+     border-radius:8px;cursor:pointer;box-shadow:var(--shadow);max-width:300px}
+.tab:hover{border-color:var(--rail)}
+.tab.on{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent),var(--shadow)}
+.tname{font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
+.tab:not(.on) .tname{color:var(--ink-2)}
+.ttot{font-size:13px;font-weight:700}
+.tab:not(.on) .ttot{color:var(--ink-2);font-weight:600}
+.tdiff{font-size:11px}
+.tclose{border:0;background:transparent;color:var(--drop);cursor:pointer;font-size:14px;padding:0 4px;line-height:1;align-self:center}
+.tclose:hover{color:var(--loss)}
+.tadd{border:1px dashed var(--rail);background:transparent;color:var(--accent);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
+.tadd:hover{background:var(--accent-soft)}
+.cmptog{margin-left:auto;border:1px solid var(--rail);background:var(--paper);border-radius:6px;padding:5px 10px;font-size:12px;color:var(--ink-2);cursor:pointer;white-space:nowrap}
+.cmptog .tri{font-size:9px;display:inline-block;transition:transform .15s;color:var(--mute)}
+.cmptog[aria-expanded="false"] .tri{transform:rotate(-90deg)}
+.cmp-scroll{overflow-x:auto}
+table.cmp-t{width:100%;border-collapse:collapse;font-size:12px}
+table.cmp-t th,table.cmp-t td{padding:6px 8px;text-align:right;border-top:1px solid var(--line);vertical-align:top;white-space:nowrap}
+table.cmp-t thead th{background:var(--field);border-top:0;border-bottom:1px solid var(--rail);color:var(--mute);font-weight:500;font-size:11px;vertical-align:middle}
+table.cmp-t th:first-child,table.cmp-t td:first-child{text-align:left;padding-left:14px;white-space:normal;min-width:240px}
+table.cmp-t td:last-child,table.cmp-t th:last-child{padding-right:14px}
+table.cmp-t tbody tr{cursor:pointer}
+table.cmp-t tbody tr:hover td{background:#f8fbfe}
+table.cmp-t tbody tr.on td{background:#f1f7ff}
+.cname{font-weight:600;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.cfmt{font-size:10.5px;color:var(--mute);font-weight:400}
+.cmem{font-size:10.5px;color:var(--ink-2);margin-top:2px}
+.cd{display:block;font-size:10px;margin-top:1px}
+table.cmp-t td.ap,table.cmp-t th.ap{text-align:center}
+.v.best{font-weight:700;text-decoration:underline 2px var(--accent);text-underline-offset:3px}
+td.ctot{font-size:13px;font-weight:700}
+
 /* ---------- layout ---------- */
 main{
   display:grid;grid-template-columns:minmax(560px,1.3fr) minmax(430px,1fr);
@@ -83,7 +120,13 @@ main{
 /* ---------- team scoreboard ---------- */
 .tm-head{display:flex;align-items:flex-end;gap:16px;padding:14px 16px 12px;background:linear-gradient(180deg,#f7fbff,#fff)}
 .tm-head .label{font-size:12px;color:var(--ink-2);font-weight:600}
-.tm-head .total{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1;margin-left:auto}
+.tm-head .total{font-size:38px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.tm-head .tabname{margin-left:8px;font-size:10.5px;color:var(--accent);font-weight:600;background:var(--accent-soft);padding:1px 8px;border-radius:10px;vertical-align:1px}
+.tot-wrap{margin-left:auto;text-align:right}
+.basediff{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:7px;font-size:11.5px}
+.basediff .lab{color:var(--mute);font-size:11px}
+.basediff .onbtn{font-size:10.5px;padding:2px 8px}
+.onbtn[disabled]{opacity:.45;cursor:default}
 .tm-head .rule{font-size:11px;color:var(--mute);padding-bottom:3px}
 table.grid{width:100%;border-collapse:collapse}
 table.grid th,table.grid td{padding:6px 8px;text-align:right;border-top:1px solid var(--line)}
@@ -188,6 +231,7 @@ tr.r-on td{border-bottom:0}
 }
 .cell:hover{border-color:var(--rail);background:#fff}
 .cell.off{color:#d3dce6}
+.cell.chg{color:var(--accent);font-weight:700;background:#eef5ff}
 input.cell{cursor:text;border-color:var(--accent);background:#fff;font-weight:600}
 .stepper{display:flex;flex-direction:column;gap:1px;margin-left:1px}
 .cellwrap{display:flex;align-items:center;justify-content:center;gap:1px}
@@ -257,6 +301,11 @@ dialog::backdrop{background:rgba(15,34,55,.35)}
   </div>
 </div>
 
+<div class="subbar">
+  <div class="tabbar" id="tabbar"></div>
+  <section class="card" id="cmpCard" hidden></section>
+</div>
+
 <main>
   <div class="stack">
     <section class="card" id="teamCard"></section>
@@ -279,7 +328,8 @@ dialog::backdrop{background:rgba(15,34,55,.35)}
   <div class="dlg-b">
     <p>Excelから「CSV UTF-8」または通常のCSVで書き出したファイルを読み込みます。ファイル選択のほか、シートをコピーしてそのまま貼り付けても取り込めます（タブ区切り可）。</p>
     <div class="radio">
-      <label><input type="radio" name="impmode" value="replace" checked> 全部入れ替える</label>
+      <label><input type="radio" name="impmode" value="replace" checked> 表示中のタブを入れ替える</label>
+      <label><input type="radio" name="impmode" value="newtab"> 新しいタブに取り込む</label>
       <label><input type="radio" name="impmode" value="merge"> 同名選手は上書き、新規は追加</label>
     </div>
     <p><input type="file" id="fileCsv" accept=".csv,.txt,.tsv,text/csv"></p>
@@ -329,10 +379,12 @@ const ICON = {
   hb:'<path d="M 6.19,4.89 C 6.15,4.92 6.12,5.32 6.12,5.77 C 6.12,6.48 6.15,6.61 6.29,6.66 C 6.45,6.73 6.43,6.95 5.99,10.77 C 5.71,13.23 5.48,14.86 5.42,14.91 C 5.3,15.01 4.63,22.42 4.64,23.67 L 4.64,24.44 L 4.92,24.44 C 5.07,24.44 5.2,24.42 5.2,24.4 C 5.2,24.38 5.45,22.55 5.75,20.35 C 6.06,18.15 6.31,16.32 6.31,16.31 C 6.31,16.28 6.37,16.26 6.43,16.26 C 6.59,16.26 6.68,18.29 6.68,21.9 L 6.68,24.44 L 7.6,24.44 L 8.51,24.44 L 8.58,23.53 C 8.61,23.04 8.65,21.34 8.68,19.75 C 8.75,16.44 8.76,16.26 9,16.26 C 9.22,16.26 9.18,16.05 9.76,20.56 L 10.25,24.44 L 10.73,24.44 L 11.2,24.44 L 10.67,19.72 C 10.37,17.12 10.1,14.91 10.07,14.81 C 10.04,14.7 9.78,12.84 9.48,10.67 L 8.95,6.73 L 14.48,6.7 C 17.52,6.69 20.02,6.69 20.03,6.7 C 20.13,6.8 19.1,14.46 18.98,14.56 C 18.88,14.63 18.71,15.82 18.31,19.25 C 18,21.77 17.74,23.98 17.71,24.14 L 17.66,24.44 L 18.16,24.44 L 18.65,24.44 L 18.8,23.49 C 18.88,22.96 19.16,21.04 19.43,19.21 L 19.92,15.89 L 20.18,15.89 L 20.44,15.89 L 20.44,20.16 L 20.44,24.44 L 21.37,24.44 L 22.3,24.44 L 22.3,20.16 C 22.3,16.05 22.31,15.89 22.48,15.89 C 22.59,15.89 22.67,15.97 22.7,16.14 C 22.72,16.29 23.04,18.21 23.38,20.42 L 24.02,24.44 L 24.33,24.44 L 24.64,24.44 L 24.58,23.96 C 24.55,23.69 24.37,21.69 24.16,19.51 C 23.65,14.05 23.74,14.6 23.39,14.57 L 23.09,14.54 L 23.03,12.12 C 22.99,10.79 22.94,8.62 22.94,7.29 L 22.91,4.87 L 14.58,4.84 C 10,4.83 6.22,4.85 6.19,4.89 Z"/>'
 };
 const RULE = {2:2, 3:3, 4:3, 5:4, 6:5};     // 演技人数 → 各種目のカウント人数
-const E_DEC = [0,100,200,300,333,400,500,600,666,700,800,900,999];
+// E の刻み：小数第2・3位を 00 → 33 → 66 → (次の0.1の)00 と進める
+const E_DEC = (() => { const a = []; for (let t = 0; t < 10; t++) a.push(t*100, t*100 + 33, t*100 + 66); return a; })();
 const MAXV = {d:20, e:20, nd:10, sb:10};   // e/d は合計点取込に備えて広めに取る
 const COLORS = ["#1a63c4","#0f7a5a","#b4462f","#7b4fb0","#b8860b","#2e8ab0","#a13a6d","#4a6b1f"];
-const KEY = "mag_team_sim_v2";
+const KEY = "mag_team_sim_v3";
+const OLD_KEY = "mag_team_sim_v2";
 try{ localStorage.removeItem("mag_team_sim_v1"); }catch(e){}   // 旧バージョンの自動サンプルを引きずらない
 
 /* ========== 数値ユーティリティ ========== */
@@ -354,8 +406,8 @@ function stepE(v, dir){
   if (ip <= 0) return 0;
   return clamp(((ip-1)*1000 + E_DEC[E_DEC.length-1])/1000, 0, MAXV.e);
 }
-function stepVal(field, v, dir){
-  if (field === "e") return stepE(v, dir);
+function stepVal(field, v, dir, coarse){
+  if (field === "e") return coarse ? clamp(r3(v + dir * 0.1), 0, MAXV.e) : stepE(v, dir);
   const nv = r1(v + dir * 0.1);
   return clamp(nv, 0, MAXV[field]);
 }
@@ -366,9 +418,10 @@ function normVal(field, v){
 }
 
 /* ========== 状態 ========== */
-let S = load() || seedState();
+let DB = null;                // 全タブ（初期化は load() 定義の直後）
+let S = null;                 // 表示中のタブ
 let hidden = new Set();      // レーダーで非表示にした選手ID
-let seq = S.athletes.length;
+let seq = 0;
 
 function blankScores(){
   const o = {};
@@ -415,33 +468,75 @@ function sampleState(){
   });
   return {v:2, entry:6, mode:5, anOpen:true, athletes};
 }
-function seedState(){
-  return {v:2, entry:6, mode:5, anOpen:true, athletes:[]};
+const tabId = () => "t" + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+const tabLabel = i => "案" + (i < 26 ? String.fromCharCode(65 + i) : (i + 1));
+function nextTabLabel(){
+  const used = new Set(DB ? DB.tabs.map(t => t.name) : []);
+  for (let i = 0; i < 200; i++){ const n = tabLabel(i); if (!used.has(n)) return n; }
+  return "案";
+}
+function seedState(name){
+  return {id:tabId(), name:name || "案A", entry:6, mode:5, athletes:[], base:null};
+}
+function seedDB(){
+  return {v:3, anOpen:true, cmpOpen:true, active:0, tabs:[seedState("案A")]};
+}
+const clone = o => JSON.parse(JSON.stringify(o));
+const hasData = c => !!(c && (c.d || c.e || c.nd || c.sb));
+function snapshot(athletes, src){
+  return {src:src || "", at:Date.now(),
+          athletes:athletes.map(a => ({id:a.id, name:a.name, sc:clone(a.sc)}))};
+}
+function normAthletes(list){
+  (list || []).forEach(a => {
+    a.sc = a.sc || {};
+    AP.forEach(ap => {
+      const c = a.sc[ap.k] || {};
+      a.sc[ap.k] = {d:+c.d||0, e:+c.e||0, nd:+c.nd||0, sb:+c.sb||0, on:c.on !== false};
+    });
+  });
+  return list || [];
+}
+function normTab(o, name){
+  const t = {id:o.id || tabId(), name:o.name || name, entry:o.entry, mode:o.mode,
+             athletes:normAthletes(Array.isArray(o.athletes) ? o.athletes : []), base:null};
+  t.mode = RULE[t.mode] ? t.mode : 5;
+  t.entry = RULE[t.entry] ? t.entry : t.mode;
+  if (t.entry < t.mode) t.entry = t.mode;
+  if (o.base && Array.isArray(o.base.athletes)){
+    t.base = {src:o.base.src || "", at:o.base.at || 0, athletes:normAthletes(o.base.athletes)};
+  }
+  return t;
+}
+function normDB(o){
+  if (!o) return null;
+  let tabs, extra = {};
+  if (Array.isArray(o.tabs)) tabs = o.tabs.map((t, i) => normTab(t, tabLabel(i)));
+  else if (Array.isArray(o.athletes)){ tabs = [normTab(o, "案A")]; }      // v2 以前（1画面）からの移行
+  else return null;
+  if (!tabs.length) tabs = [seedState("案A")];
+  return {v:3, anOpen:o.anOpen !== false, cmpOpen:o.cmpOpen !== false,
+          active:clamp(o.active | 0, 0, tabs.length - 1), tabs};
 }
 function load(){
   try{
-    const raw = localStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY) || localStorage.getItem(OLD_KEY);
     if (!raw) return null;
-    const o = JSON.parse(raw);
-    if (!o || !Array.isArray(o.athletes)) return null;
-    o.mode = RULE[o.mode] ? o.mode : 5;
-    o.entry = RULE[o.entry] ? o.entry : o.mode;
-    if (o.entry < o.mode) o.entry = o.mode;
-    o.athletes.forEach(a => {
-      a.sc = a.sc || {};
-      AP.forEach(ap => {
-        const c = a.sc[ap.k] || {};
-        a.sc[ap.k] = {d:+c.d||0, e:+c.e||0, nd:+c.nd||0, sb:+c.sb||0, on:c.on !== false};
-      });
-    });
-    return o;
+    return normDB(JSON.parse(raw));
   }catch(e){ return null; }
 }
+DB = load() || seedDB();
+S = DB.tabs[DB.active] || DB.tabs[0];
+seq = DB.tabs.reduce((n, t) => n + t.athletes.length, 0);
+
 let saveTimer = null;
 function save(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    try{ localStorage.setItem(KEY, JSON.stringify(S)); }
+    try{
+      localStorage.setItem(KEY, JSON.stringify(DB));
+      localStorage.removeItem(OLD_KEY);
+    }
     catch(e){ toast("保存できませんでした（ブラウザの保存領域を確認してください）"); }
   }, 120);
 }
@@ -479,6 +574,62 @@ function computeFor(members, mode){
 const teamMembers = () => S.athletes.slice(0, S.entry);
 const compute = () => computeFor(teamMembers(), S.mode);
 
+/* ========== 初期値（CSV取込時）との比較・復帰 ========== */
+const baseMap = () => new Map(S.base ? S.base.athletes.map(b => [b.id, b]) : []);
+function baseTotal(){
+  if (!S.base) return null;
+  const bm = baseMap();
+  const mem = teamMembers().map(m => {
+    const b = bm.get(m.id);
+    if (!b) return m;
+    const sc = {};
+    AP.forEach(ap => {
+      const bc = b.sc[ap.k];
+      sc[ap.k] = {d:bc.d, e:bc.e, nd:bc.nd, sb:bc.sb, on:m.sc[ap.k].on && hasData(bc)};
+    });
+    return {id:m.id, sc};
+  });
+  return computeFor(mem, S.mode).total;
+}
+function changedCount(){
+  if (!S.base) return 0;
+  const bm = baseMap(); let n = 0;
+  S.athletes.forEach(a => {
+    const b = bm.get(a.id);
+    if (!b) return;
+    AP.forEach(ap => ["d","e","nd","sb"].forEach(f => { if (a.sc[ap.k][f] !== b.sc[ap.k][f]) n++; }));
+  });
+  const ids = new Set(S.athletes.map(a => a.id));
+  bm.forEach((b, id) => { if (!ids.has(id)) n++; });   // 削除された選手
+  return n;
+}
+function revertToBase(){
+  if (!S.base) return;
+  const bm = baseMap();
+  S.athletes.forEach(a => {
+    const b = bm.get(a.id);
+    if (!b) return;
+    AP.forEach(ap => {
+      const bc = b.sc[ap.k], c = a.sc[ap.k];
+      c.d = bc.d; c.e = bc.e; c.nd = bc.nd; c.sb = bc.sb;
+      if (!hasData(bc)) c.on = false;        // CSVで未演技だった種目は未演技に戻す
+    });
+    bm.delete(a.id);
+  });
+  bm.forEach(b => { const c = clone(b); c.open = false; S.athletes.push(c); });   // 削除した選手は Res. に戻す
+}
+function markChanged(){
+  const bm = baseMap();
+  panel.querySelectorAll("[data-edit]").forEach(el => {
+    const [id, k, f] = el.dataset.edit.split(":");
+    const a = S.athletes.find(x => x.id === id), b = bm.get(id);
+    const chg = !!(a && b && a.sc[k][f] !== b.sc[k][f]);
+    el.classList.toggle("chg", chg);
+    if (chg) el.title = "初期値 " + (f === "e" ? f3(b.sc[k][f]) : f1(b.sc[k][f]));
+    else el.removeAttribute("title");
+  });
+}
+
 /* ========== 描画：団体スコアボード ========== */
 function apIconSvg(k, size){
   return '<svg class="apicon" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" ' +
@@ -491,8 +642,16 @@ function renderTeam(R){
   const n = RULE[S.mode];
   let h = "";
   h += '<div class="tm-head">';
-  h +=   '<div><div class="label">団体総合</div><div class="rule">' + S.entry + '人エントリー ／ ' + S.mode + '人演技 ／ 各種目 上位' + n + '人カウント</div></div>';
-  h +=   '<div class="total num">' + f3(R.total) + '</div>';
+  h +=   '<div><div class="label">団体総合<span class="tabname">' + esc(S.name) + '</span></div><div class="rule">' + S.entry + '人エントリー ／ ' + S.mode + '人演技 ／ 各種目 上位' + n + '人カウント</div></div>';
+  h +=   '<div class="tot-wrap"><div class="total num">' + f3(R.total) + '</div>';
+  if (S.base && mem.length){
+    const bt = baseTotal(), d = r3(R.total - bt), cc = changedCount();
+    h += '<div class="basediff"><span class="lab" title="' + esc(S.base.src || "取込データ") + '">初期値比</span>' +
+         '<span class="num ' + (d > 0 ? "gain" : d < 0 ? "loss" : "zero") + '">' + (d > 0 ? "+" : d === 0 ? "±" : "") + f3(d) + '</span>' +
+         '<button class="onbtn" id="btnRevert"' + (cc ? "" : " disabled") + ' title="CSV取込（サンプル読込）直後の得点に戻します。並び順・エントリー・出場の設定はそのまま">' +
+         '初期値に戻す' + (cc ? '（' + cc + '）' : '') + '</button></div>';
+  }
+  h +=   '</div>';
   h += '</div>';
 
   if (!mem.length){
@@ -539,7 +698,7 @@ function renderTeam(R){
 function renderAnalysis(R){
   const mem = teamMembers();
   const n = RULE[S.mode];
-  const open = S.anOpen !== false;
+  const open = DB.anOpen !== false;
   anCard.dataset.open = open ? "1" : "0";
   anToggle.setAttribute("aria-expanded", open ? "true" : "false");
   anSub.textContent = mem.length ? (S.entry + "人エントリー・" + S.mode + "人演技・上位" + n + "人カウント") : "";
@@ -689,13 +848,14 @@ function renderPanel(){
         h += '<tr data-row="' + f[0] + '"><td>' + f[1] +
              (showSum ? '<span class="rowsum num" data-sum="' + a.id + ':' + f[0] + '" title="6種目のD・Eの合計">' + sumTxt + '</span>' : '') +
              '</td>';
+        const stepTip = f[0] === "e" ? ' title="00→33→66 で刻む（Shift+クリックで0.1）"' : ' title="0.1刻み"';
         AP.forEach(ap => {
           const c = a.sc[ap.k], v = c[f[0]];
           const txt = f[0] === "e" ? f3(v) : f1(v);
           h += '<td><span class="cellwrap">' +
-               '<button class="step" data-step="-1" data-t="' + a.id + ':' + ap.k + ':' + f[0] + '" tabindex="-1" aria-label="下げる">▼</button>' +
+               '<button class="step" data-step="-1" data-t="' + a.id + ':' + ap.k + ':' + f[0] + '" tabindex="-1" aria-label="下げる"' + stepTip + '>▼</button>' +
                '<button class="cell' + (c.on ? "" : " off") + '" data-edit="' + a.id + ':' + ap.k + ':' + f[0] + '">' + txt + '</button>' +
-               '<button class="step" data-step="1" data-t="' + a.id + ':' + ap.k + ':' + f[0] + '" tabindex="-1" aria-label="上げる">▲</button>' +
+               '<button class="step" data-step="1" data-t="' + a.id + ':' + ap.k + ':' + f[0] + '" tabindex="-1" aria-label="上げる"' + stepTip + '>▲</button>' +
                '</span></td>';
         });
         h += '</tr>';
@@ -721,8 +881,65 @@ function renderPanel(){
   });
   if (!S.athletes.length) h = '<div class="card"><div class="empty">ここに選手カードが並びます。<br>選手名をクリックすると、D・E・ND・SB を種目ごとに入力できます。</div></div>';
   panel.innerHTML = h;
+  markChanged();
   renderTeam(R);
   renderAnalysis(R);
+  renderTabs();
+}
+
+/* ========== 描画：タブと比較表 ========== */
+const tabResults = () => DB.tabs.map(t => computeFor(t.athletes.slice(0, t.entry), t.mode));
+const sgn = d => (d > 0 ? "+" : d === 0 ? "±" : "") + f3(d);
+const dcls = d => d > 0 ? "gain" : d < 0 ? "loss" : "zero";
+function renderTabs(){
+  const res = tabResults();
+  const ref = res[DB.active].total;
+  let h = '<div class="tabs" role="tablist">';
+  DB.tabs.forEach((t, i) => {
+    const on = i === DB.active, d = r3(res[i].total - ref);
+    h += '<div class="tab' + (on ? " on" : "") + '" role="tab" tabindex="0" aria-selected="' + on + '" data-tab="' + i + '">' +
+         '<span class="tname" title="' + esc(t.name) + '（ダブルクリックで名前を変更）">' + esc(t.name) + '</span>' +
+         '<span class="ttot num">' + f3(res[i].total) + '</span>' +
+         (on ? '' : '<span class="tdiff num ' + dcls(d) + '">' + sgn(d) + '</span>') +
+         (DB.tabs.length > 1 ? '<button class="tclose" data-close="' + i + '" aria-label="' + esc(t.name) + 'を閉じる" title="このタブを閉じる">×</button>' : '') +
+         '</div>';
+  });
+  h += '<button class="tadd" id="tabDup" title="表示中のタブを丸ごと複製します（比較用）">＋ 複製</button>';
+  h += '<button class="tadd" id="tabNew" title="空のタブを追加します">＋ 新規</button>';
+  h += '</div>';
+  if (DB.tabs.length > 1)
+    h += '<button class="cmptog" id="cmpTog" aria-expanded="' + (DB.cmpOpen ? "true" : "false") + '">比較表 <span class="tri">▼</span></button>';
+  tabbar.innerHTML = h;
+  renderCompare(res);
+}
+function renderCompare(res){
+  if (DB.tabs.length < 2 || !DB.cmpOpen){ cmpCard.hidden = true; cmpCard.innerHTML = ""; return; }
+  cmpCard.hidden = false;
+  const ref = res[DB.active];
+  const best = {};
+  AP.forEach(a => best[a.k] = Math.max.apply(null, res.map(r => r.ap[a.k])));
+  const bestT = Math.max.apply(null, res.map(r => r.total));
+  let h = '<table class="cmp-t"><thead><tr><th>タブ ／ エントリー</th>' +
+          AP.map(a => '<th class="ap" title="' + a.n + '">' + apIconSvg(a.k, 16) + '</th>').join("") +
+          '<th>団体総合</th><th>差</th></tr></thead><tbody>';
+  DB.tabs.forEach((t, i) => {
+    const r = res[i], on = i === DB.active;
+    const mem = t.athletes.slice(0, t.entry).map(a => esc(a.name)).join("・");
+    h += '<tr class="' + (on ? "on" : "") + '" data-tab="' + i + '"><td>' +
+         '<div class="cname">' + esc(t.name) + '<span class="cfmt">' + t.entry + '人エントリー・' + t.mode + '人演技・上位' + RULE[t.mode] + '人</span></div>' +
+         '<div class="cmem">' + (mem || "—") + '</div></td>';
+    AP.forEach(a => {
+      const v = r.ap[a.k], d = r3(v - ref.ap[a.k]);
+      h += '<td class="num ap"><span class="v' + (v === best[a.k] && v > 0 ? " best" : "") + '">' + f3(v) + '</span>' +
+           (on ? "" : '<span class="cd ' + dcls(d) + '">' + sgn(d) + '</span>') + '</td>';
+    });
+    const d = r3(r.total - ref.total);
+    h += '<td class="num ctot"><span class="v' + (r.total === bestT && r.total > 0 ? " best" : "") + '">' + f3(r.total) + '</span></td>';
+    h += '<td class="num ' + (on ? "zero" : dcls(d)) + '">' + (on ? "基準" : sgn(d)) + '</td></tr>';
+  });
+  h += '</tbody></table>';
+  cmpCard.innerHTML = '<h2>団体スコア比較<span class="sub">差は表示中のタブ「' + esc(S.name) + '」が基準 ／ 下線は各列の最高値 ／ 行クリックで切替</span></h2>' +
+                      '<div class="cmp-scroll">' + h + '</div>';
 }
 
 /* 数値だけ更新（DOMは作り直さない＝入力中でも壊れない） */
@@ -740,8 +957,10 @@ function refresh(){
     const eEl = panel.querySelector('[data-sum="' + a.id + ':e"]');
     if (eEl) eEl.textContent = f3(sumField(a, "e"));
   });
+  markChanged();
   renderTeam(R);
   renderAnalysis(R);
+  renderTabs();
   save();
 }
 
@@ -786,7 +1005,7 @@ function beginEdit(btn){
     else if (e.key === "ArrowUp" || e.key === "ArrowDown"){
       e.preventDefault();
       const v = parseFloat(inp.value) || 0;
-      const nv = stepVal(t.f, normVal(t.f, v), e.key === "ArrowUp" ? 1 : -1);
+      const nv = stepVal(t.f, normVal(t.f, v), e.key === "ArrowUp" ? 1 : -1, e.shiftKey);
       inp.value = t.f === "e" ? f3(nv) : f1(nv);
       t.a.sc[t.k][t.f] = nv;
       refresh();
@@ -818,6 +1037,8 @@ function moveTo(id, to){
 /* ========== イベント ========== */
 const teamCard = document.getElementById("teamCard");
 const panel = document.getElementById("panel");
+const tabbar = document.getElementById("tabbar");
+const cmpCard = document.getElementById("cmpCard");
 const radar = document.getElementById("radar");
 const radarLegend = document.getElementById("radarLegend");
 const anTables = document.getElementById("anTables");
@@ -825,7 +1046,7 @@ const anSub = document.getElementById("anSub");
 const anCard = document.getElementById("anCard");
 const anToggle = document.getElementById("anToggle");
 anToggle.addEventListener("click", () => {
-  S.anOpen = !(S.anOpen !== false);
+  DB.anOpen = !(DB.anOpen !== false);
   renderAnalysis(compute());
   save();
 });
@@ -856,6 +1077,64 @@ modesEl.addEventListener("click", e => {
   renderModes(); renderPanel(); save();
 });
 
+function activate(i){
+  DB.active = clamp(i, 0, DB.tabs.length - 1);
+  S = DB.tabs[DB.active];
+  hidden = new Set();
+  renderModes(); renderPanel(); save();
+}
+function addTab(t){
+  DB.tabs.push(t);
+  activate(DB.tabs.length - 1);
+}
+tabbar.addEventListener("click", e => {
+  const cl = e.target.closest("[data-close]");
+  if (cl){
+    const i = +cl.dataset.close, t = DB.tabs[i];
+    if (!t || !confirm("「" + t.name + "」を閉じます。このタブの内容は消えます。よろしいですか？")) return;
+    DB.tabs.splice(i, 1);
+    if (i < DB.active) DB.active--;
+    activate(Math.min(DB.active, DB.tabs.length - 1));
+    return;
+  }
+  if (e.target.closest("#tabDup")){
+    const c = clone(S);
+    c.id = tabId(); c.name = nextTabLabel();
+    c.athletes.forEach(a => a.open = false);
+    addTab(c);
+    toast("「" + c.name + "」として複製しました");
+    return;
+  }
+  if (e.target.closest("#tabNew")){
+    const t = seedState(nextTabLabel());
+    t.entry = S.entry; t.mode = S.mode;
+    addTab(t);
+    return;
+  }
+  if (e.target.closest("#cmpTog")){
+    DB.cmpOpen = !DB.cmpOpen;
+    renderTabs(); save();
+    return;
+  }
+  const tab = e.target.closest("[data-tab]");
+  if (tab && +tab.dataset.tab !== DB.active) activate(+tab.dataset.tab);
+});
+tabbar.addEventListener("keydown", e => {
+  const tab = e.target.closest(".tab");
+  if (tab && (e.key === "Enter" || e.key === " ")){ e.preventDefault(); activate(+tab.dataset.tab); }
+});
+tabbar.addEventListener("dblclick", e => {
+  const nm = e.target.closest(".tname");
+  if (!nm) return;
+  const t = DB.tabs[+nm.closest(".tab").dataset.tab];
+  const v = prompt("タブの名前", t.name);
+  if (v !== null && v.trim()){ t.name = v.trim(); renderPanel(); save(); }
+});
+cmpCard.addEventListener("click", e => {
+  const tr = e.target.closest("tr[data-tab]");
+  if (tr && +tr.dataset.tab !== DB.active) activate(+tr.dataset.tab);
+});
+
 panel.addEventListener("dblclick", e => {
   const nm = e.target.closest(".ath-name");
   if (!nm) return;
@@ -878,7 +1157,7 @@ panel.addEventListener("click", e => {
   if (step){
     const t = parseTarget(step.dataset.t);
     if (t){
-      t.a.sc[t.k][t.f] = stepVal(t.f, t.a.sc[t.k][t.f], +step.dataset.step);
+      t.a.sc[t.k][t.f] = stepVal(t.f, t.a.sc[t.k][t.f], +step.dataset.step, e.shiftKey);
       const cell = step.parentElement.querySelector("[data-edit]");
       if (cell) cell.textContent = t.f === "e" ? f3(t.a.sc[t.k][t.f]) : f1(t.a.sc[t.k][t.f]);
       refresh();
@@ -935,12 +1214,21 @@ panel.addEventListener("click", e => {
 });
 
 teamCard.addEventListener("click", e => {
+  if (e.target.closest("#btnRevert")){
+    if (!S.base) return;
+    if (!confirm("得点を初期値（" + (S.base.src || "取込データ") + "）に戻します。\n並び順・エントリー・出場の設定はそのままです。よろしいですか？")) return;
+    revertToBase();
+    renderPanel(); save();
+    toast("初期値に戻しました");
+    return;
+  }
   if (e.target.closest("#btnLoadSample")){
     const sm = sampleState();
     S.athletes = sm.athletes;
     S.entry = sm.entry;
     S.mode = sm.mode;
-    seq = S.athletes.length;
+    S.base = snapshot(S.athletes, "サンプルデータ");
+    seq += S.athletes.length;
     renderModes(); renderPanel(); save();
     toast("サンプルデータを読み込みました");
     return;
@@ -1020,31 +1308,26 @@ document.getElementById("btnAdd").addEventListener("click", () => {
   if (el && el.scrollIntoView) el.scrollIntoView({block:"nearest"});
 });
 document.getElementById("btnReset").addEventListener("click", () => {
-  if (!confirm("保存されている選手データをすべて消します。よろしいですか？")) return;
-  S = seedState();
-  seq = S.athletes.length;
+  if (!confirm("すべてのタブと選手データを消します。よろしいですか？")) return;
+  DB = seedDB();
+  S = DB.tabs[0];
   hidden = new Set();
   renderModes(); renderPanel(); save();
   toast("データを消しました");
 });
 document.getElementById("btnSave").addEventListener("click", () => {
-  download("team-score-" + stamp() + ".json", JSON.stringify(S, null, 2), "application/json");
+  download("team-score-" + stamp() + ".json", JSON.stringify(DB, null, 2), "application/json");
 });
 document.getElementById("fileRestore").addEventListener("change", async e => {
   const f = e.target.files[0];
   if (!f) return;
   try{
-    const o = JSON.parse(await f.text());
-    if (!o || !Array.isArray(o.athletes)) throw new Error("形式が違います");
-    S = o;
-    S.mode = RULE[S.mode] ? S.mode : 5;
-    S.entry = RULE[S.entry] ? S.entry : S.mode;
-    if (S.entry < S.mode) S.entry = S.mode;
-    S.athletes.forEach(a => AP.forEach(ap => {
-      const c = a.sc[ap.k] || {};
-      a.sc[ap.k] = {d:+c.d||0, e:+c.e||0, nd:+c.nd||0, sb:+c.sb||0, on:c.on !== false};
-    }));
-    seq = S.athletes.length;
+    const db = normDB(JSON.parse(await f.text()));
+    if (!db) throw new Error("形式が違います");
+    DB = db;
+    S = DB.tabs[DB.active];
+    hidden = new Set();
+    seq = DB.tabs.reduce((n, t) => n + t.athletes.length, 0);
     renderModes(); renderPanel(); save();
     toast("復元しました");
   }catch(err){ toast("読み込めませんでした：" + err.message); }
@@ -1057,11 +1340,13 @@ document.getElementById("btnCsvOut").addEventListener("click", () => {
     if (!c.on) return;
     rows.push([a.name, ap.n, f1(c.d), f3(c.e), f1(c.nd), f1(c.sb)]);
   }));
-  download("team-score-" + stamp() + ".csv", "\ufeff" + rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv");
+  download("team-score-" + S.name + "-" + stamp() + ".csv", "\ufeff" + rows.map(r => r.map(csvCell).join(",")).join("\r\n"), "text/csv");
 });
 
 /* ========== CSV ========== */
 const dlg = document.getElementById("dlgImport");
+let lastCsvName = "";
+document.getElementById("csvText").addEventListener("input", () => { lastCsvName = ""; });
 document.getElementById("btnImport").addEventListener("click", () => {
   document.getElementById("impMsg").textContent = "";
   dlg.showModal();
@@ -1080,6 +1365,7 @@ document.getElementById("fileCsv").addEventListener("change", async e => {
   if (!f) return;
   const buf = await f.arrayBuffer();
   document.getElementById("csvText").value = decodeText(buf);
+  lastCsvName = f.name;
   document.getElementById("impMsg").textContent = "";
 });
 document.getElementById("btnImpRun").addEventListener("click", () => {
@@ -1090,19 +1376,30 @@ document.getElementById("btnImpRun").addEventListener("click", () => {
     const list = parseCsvToAthletes(txt);
     if (!list.length) throw new Error("選手を1人も読み取れませんでした。列名をご確認ください。");
     const mode = document.querySelector('input[name="impmode"]:checked').value;
-    if (mode === "replace"){
-      S.athletes = list;
-    }else{
-      list.forEach(nw => {
-        const ex = S.athletes.find(a => a.name === nw.name);
-        if (ex) ex.sc = nw.sc;
-        else S.athletes.push(nw);
-      });
-    }
+    const src = lastCsvName || "貼り付けデータ";
     seq += list.length;
     hidden = new Set();
     dlg.close();
-    renderPanel(); save();
+    if (mode === "newtab"){
+      const nm = lastCsvName ? lastCsvName.replace(/\.[^.]+$/, "").replace(/[_\-\s]*取込用$/, "") : nextTabLabel();
+      const t = seedState(nm || nextTabLabel());
+      t.entry = S.entry; t.mode = S.mode;
+      t.athletes = list;
+      t.base = snapshot(list, src);
+      addTab(t);
+    }else{
+      if (mode === "replace"){
+        S.athletes = list;
+      }else{
+        list.forEach(nw => {
+          const ex = S.athletes.find(a => a.name === nw.name);
+          if (ex) ex.sc = nw.sc;
+          else S.athletes.push(nw);
+        });
+      }
+      S.base = snapshot(S.athletes, src);
+      renderPanel(); save();
+    }
     toast(list.length + "人を取り込みました");
   }catch(err){ msg.textContent = err.message; }
 });
@@ -1270,7 +1567,7 @@ function toast(m){
   toastTimer = setTimeout(() => toastEl.classList.remove("on"), 2200);
 }
 window.addEventListener("beforeunload", () => {
-  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  try{ localStorage.setItem(KEY, JSON.stringify(DB)); localStorage.removeItem(OLD_KEY); }catch(e){}
 });
 
 renderModes();
